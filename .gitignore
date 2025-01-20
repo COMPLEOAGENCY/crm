@@ -31,3 +31,5 @@ auth.json
 /cache
 /config
 /public/assets
+/app/logs
+/app/logs
