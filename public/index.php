@@ -89,18 +89,23 @@ try{
 // Dans index.php
 
 // Routes pour APIv2
-$App->get("/apiv2/{resource}")
+$App->get("/apiv2/{resource}[/]?")
     ->setAction("Api\\ApiV2Controller@handleRequest")
     ->where('resource', '[a-zA-Z]+');
 
-$App->get("/apiv2/{resource}/{id}")
+$App->get("/apiv2/{resource}/{id}[/]?")
     ->setAction("Api\\ApiV2Controller@handleRequest")
     ->where('resource', '[a-zA-Z]+')
     ->where('id', '[0-9]+');
 
-$App->post("/apiv2/{resource}")
+$App->post("/apiv2/{resource}[/]?")
     ->setAction("Api\\ApiV2Controller@handleRequest")
     ->where('resource', '[a-zA-Z]+');
+
+$App->post("/apiv2/{resource}/{id}[/]?")
+    ->setAction("Api\\ApiV2Controller@handleRequest")
+    ->where('resource', '[a-zA-Z]+')
+    ->where('id', '[0-9]+');
 
     $Response   = $App->run();        
 

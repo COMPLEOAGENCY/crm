@@ -88,11 +88,47 @@
                     <pre><code>GET {{ $modelInfo['endpoints']['list'] }}</code></pre>
                     <p>Paramètres de requête :</p>
                     <ul>
-                        <li><code>page</code> : Numéro de page (optionnel)</li>
-                        <li><code>limit</code> : Nombre d'éléments par page (optionnel)</li>
+                        <li><code>page</code> : Numéro de page (optionnel, défaut: 1)</li>
+                        <li><code>limit</code> : Nombre d'éléments par page (optionnel, défaut: 1000)</li>
                         <li><code>sort</code> : Champ de tri (optionnel)</li>
-                        <li><code>order</code> : Direction du tri (asc/desc) (optionnel)</li>
+                        <li><code>order</code> : Direction du tri (asc/desc) (optionnel, défaut: asc)</li>
+                        <li>
+                            <code>filter</code> : Filtres à appliquer (optionnel)<br>
+                            Peut être passé en JSON ou en tableau PHP :
+                            <ul>
+                                <li>Format JSON : <code>?filter={"name":"John","age":{"operator":">","value":25}}</code></li>
+                                <li>Format tableau : <code>?filter[name]=John&filter[age][operator]=>&filter[age][value]=25</code></li>
+                            </ul>
+                            Types de filtres supportés :
+                            <ul>
+                                <li>Filtre simple : <code>{"field": "value"}</code></li>
+                                <li>Filtre avec opérateur : <code>{"field": {"operator": ">", "value": 25}}</code></li>
+                            </ul>
+                            Opérateurs disponibles : =, >, <, >=, <=, !=, LIKE, IN
+                        </li>
                     </ul>
+
+                    <p>Exemple de réponse :</p>
+                    <pre><code>{
+    "success": true,
+    "message": "",
+    "pagination": {
+        "page": 1,
+        "limit": 10,
+        "sort": "created_at",
+        "order": "desc"
+    },
+    "filters": {
+        "sql": {
+            "status": "active",
+            "age": [">", 25]
+        },
+        "json": {
+            "preferences": {"theme": "dark"}
+        }
+    },
+    "result": [...]
+}</code></pre>
 
                     <h5>Obtenir un élément</h5>
                     <pre><code>GET {{ $modelInfo['endpoints']['get'] }}</code></pre>

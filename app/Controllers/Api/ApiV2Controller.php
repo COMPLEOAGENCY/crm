@@ -104,16 +104,80 @@ class ApiV2Controller extends Controller
 
     private function handleList($model, $limit, $params)
     {
-        // Filtrer les paramètres non pertinents
-        unset($params['resource'], $params['method'], $params['limit'], $params['debug']);
-        
         try {
-            // Récupérer la liste avec getList
-            $results = $model->getList($limit);
+            // Récupérer les paramètres de pagination et tri
+            $page = isset($params['page']) ? (int)$params['page'] : 1;
+            $limit = isset($params['limit']) ? (int)$params['limit'] : $limit;
+            $orderBy = $params['sort'] ?? null;
+            $direction = isset($params['order']) ? strtolower($params['order']) : 'asc';
+            
+            // Valider la direction du tri
+            if (!in_array($direction, ['asc', 'desc'])) {
+                $direction = 'asc';
+            }
+            
+            // Calculer l'offset pour la pagination
+            $offset = ($page - 1) * $limit;
+            if ($offset < 0) $offset = 0;
+
+            // Traiter les filtres
+            $sqlParameters = [];
+            $jsonParameters = [];
+
+            if (isset($params['filter'])) {
+                $filters = is_string($params['filter']) ? json_decode($params['filter'], true) : $params['filter'];
+                
+                if (json_last_error() === JSON_ERROR_NONE || is_array($filters)) {
+                    foreach ($filters as $field => $value) {
+                        // Vérifier si le champ existe dans le schéma du modèle
+                        if (isset(get_class($model)::$SCHEMA[$field])) {
+                            $schema = get_class($model)::$SCHEMA[$field];
+                            
+                            // Si c'est un champ JSON, on l'ajoute aux paramètres JSON
+                            if (isset($schema['type']) && $schema['type'] === 'json') {
+                                $jsonParameters[$field] = $value;
+                            }
+                            // Sinon c'est un champ SQL standard
+                            else {
+                                // Support des opérateurs de comparaison
+                                if (is_array($value) && isset($value['operator'], $value['value'])) {
+                                    $sqlParameters[] = [$schema['field'], $value['operator'], $value['value']];
+                                } else {
+                                    $sqlParameters[$schema['field']] = $value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Filtrer les paramètres non pertinents
+            unset($params['resource'], $params['method'], $params['limit'], $params['debug'],
+                  $params['page'], $params['sort'], $params['order'], $params['filter']);
+            
+            // Récupérer la liste avec les paramètres de pagination, tri et filtres
+            $results = $model->getList($limit, $sqlParameters, $jsonParameters, null, $orderBy, $direction);
+            
+            if ($results === false) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Erreur lors de la récupération de la liste'
+                ], 500);
+            }
             
             return $this->jsonResponse([
                 'success' => true,
                 'message' => '',
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'sort' => $orderBy,
+                    'order' => $direction
+                ],
+                'filters' => [
+                    'sql' => $sqlParameters,
+                    'json' => $jsonParameters
+                ],
                 'result' => $results
             ]);
         } catch (\Exception $e) {
@@ -250,6 +314,7 @@ class ApiV2Controller extends Controller
     private function jsonResponse($data, $status = 200)
     {
         $this->_httpResponse->setStatusCode($status);
-        return json_encode($data);
+        $this->_httpResponse->headers->set('Content-Type', 'application/json; charset=utf-8');
+        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
