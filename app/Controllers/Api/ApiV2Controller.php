@@ -18,7 +18,7 @@ class ApiV2Controller extends Controller
         // Configuration des headers pour l'API
         $this->_httpResponse->headers->set('Content-Type', 'application/json');
         $this->_httpResponse->headers->set('Access-Control-Allow-Origin', '*');
-        $this->_httpResponse->headers->set('Access-Control-Allow-Methods', 'GET, POST');
+        $this->_httpResponse->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         $this->_httpResponse->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     }
 
@@ -27,10 +27,23 @@ class ApiV2Controller extends Controller
         try {
             // Récupération des paramètres de la requête
             $resource = $params['resource'] ?? null;
-            $method = $params['method'] ?? 'get'; // Méthode passée en paramètre
             $id = $params['id'] ?? null;
             $limit = $params['limit'] ?? 1000;
             $requestData = $this->_httpRequest->getParams();
+
+            // Déterminer la méthode en fonction de la requête HTTP et des paramètres
+            $httpMethod = strtolower($this->_httpRequest->getMethod());
+            $method = $params['method'] ?? null;
+
+            if ($method === 'list' || ($httpMethod === 'get' && !$id)) {
+                $method = 'list';
+            } elseif ($method === 'set' || in_array($httpMethod, ['post', 'put'])) {
+                $method = 'set';
+            } elseif ($method === 'delete' || $httpMethod === 'delete') {
+                $method = 'delete';
+            } else {
+                $method = 'get';
+            }
 
             // Vérification de la ressource
             if (!$resource || !class_exists("\\Models\\" . ucfirst($resource))) {
@@ -45,11 +58,17 @@ class ApiV2Controller extends Controller
             $model = new $modelClass();
 
             // Traitement selon la méthode
-            switch (strtolower($method)) {
+            switch ($method) {
                 case 'list':
                     return $this->handleList($model, $limit, $requestData);
 
                 case 'get':
+                    if (!$id) {
+                        return $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'ID requis pour la méthode GET'
+                        ], 400);
+                    }
                     return $this->handleGet($model, $id);
 
                 case 'set':
@@ -59,6 +78,12 @@ class ApiV2Controller extends Controller
                     return $this->handleCreate($model, $requestData);
 
                 case 'delete':
+                    if (!$id) {
+                        return $this->jsonResponse([
+                            'success' => false,
+                            'message' => 'ID requis pour la méthode DELETE'
+                        ], 400);
+                    }
                     return $this->handleDelete($model, $id);
 
                 default:
@@ -72,7 +97,7 @@ class ApiV2Controller extends Controller
             return $this->jsonResponse([
                 'success' => false,
                 'message' => 'Erreur serveur: ' . $e->getMessage(),
-                'debug' => $params['debug'] ? $e->getTrace() : null
+                'debug' => isset($params['debug']) ? $e->getTrace() : null
             ], 500);
         }
     }
@@ -82,111 +107,149 @@ class ApiV2Controller extends Controller
         // Filtrer les paramètres non pertinents
         unset($params['resource'], $params['method'], $params['limit'], $params['debug']);
         
-        // Récupérer la liste avec les filtres
-        $results = $model->getList($limit, $params);
-        
-        return $this->jsonResponse([
-            'success' => true,
-            'message' => '',
-            'result' => $results
-        ]);
+        try {
+            // Récupérer la liste avec getList
+            $results = $model->getList($limit);
+            
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => '',
+                'result' => $results
+            ]);
+        } catch (\Exception $e) {
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de la liste: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     private function handleGet($model, $id)
     {
-        $result = $model->get($id);
-        
-        if (!$result) {
+        try {
+            $result = $model->get((int)$id);
+            
+            if (!$result) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => "Ressource non trouvée"
+                ], 404);
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => '',
+                'result' => $result
+            ]);
+        } catch (\Exception $e) {
             return $this->jsonResponse([
                 'success' => false,
-                'message' => "Ressource non trouvée"
-            ], 404);
+                'message' => 'Erreur lors de la récupération: ' . $e->getMessage()
+            ], 500);
         }
-
-        return $this->jsonResponse([
-            'success' => true,
-            'message' => '',
-            'result' => $result
-        ]);
     }
 
     private function handleCreate($model, $data)
     {
-        // Nettoyer les données entrantes
-        unset($data['resource'], $data['method'], $data['id']);
-        
-        foreach ($data as $key => $value) {
-            if (property_exists($model, $key)) {
-                $model->$key = $value;
+        try {
+            // Nettoyer les données entrantes
+            unset($data['resource'], $data['method'], $data['id']);
+            
+            foreach ($data as $key => $value) {
+                if (property_exists($model, $key)) {
+                    $model->$key = $value;
+                }
             }
-        }
 
-        $result = $model->save();
+            $result = $model->save();
 
-        if (!$result) {
+            if (!$result) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => "Échec de la création"
+                ], 400);
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Ressource créée",
+                'result' => $result
+            ], 201);
+        } catch (\Exception $e) {
             return $this->jsonResponse([
                 'success' => false,
-                'message' => "Échec de la création"
-            ], 400);
+                'message' => 'Erreur lors de la création: ' . $e->getMessage()
+            ], 500);
         }
-
-        return $this->jsonResponse([
-            'success' => true,
-            'message' => "Ressource créée",
-            'result' => $result
-        ], 201);
     }
 
     private function handleUpdate($model, $id, $data)
     {
-        if (!$model->get($id)) {
+        try {
+            $existingModel = $model->get((int)$id);
+            if (!$existingModel) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => "Ressource non trouvée"
+                ], 404);
+            }
+
+            // Mise à jour des champs
+            foreach ($data as $key => $value) {
+                if (property_exists($existingModel, $key)) {
+                    $existingModel->$key = $value;
+                }
+            }
+
+            $result = $existingModel->save();
+
+            if (!$result) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => "Échec de la mise à jour"
+                ], 400);
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Ressource mise à jour",
+                'result' => $result
+            ]);
+        } catch (\Exception $e) {
             return $this->jsonResponse([
                 'success' => false,
-                'message' => "Ressource non trouvée"
-            ], 404);
+                'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Mise à jour des champs
-        foreach ($data as $key => $value) {
-            if (property_exists($model, $key)) {
-                $model->$key = $value;
-            }
-        }
-
-        $result = $model->save();
-
-        return $this->jsonResponse([
-            'success' => true,
-            'message' => "Ressource mise à jour",
-            'result' => $result
-        ]);
     }
 
     private function handleDelete($model, $id)
     {
-        if (!$model->get($id)) {
+        try {
+            $result = $model->delete((int)$id);
+
+            if (!$result) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => "Échec de la suppression"
+                ], 400);
+            }
+
+            return $this->jsonResponse([
+                'success' => true,
+                'message' => "Ressource supprimée"
+            ]);
+        } catch (\Exception $e) {
             return $this->jsonResponse([
                 'success' => false,
-                'message' => "Ressource non trouvée"
-            ], 404);
+                'message' => 'Erreur lors de la suppression: ' . $e->getMessage()
+            ], 500);
         }
-
-        $result = $model->delete($id);
-
-        return $this->jsonResponse([
-            'success' => true,
-            'message' => "Ressource supprimée",
-            'result' => $result
-        ]);
     }
 
     private function jsonResponse($data, $status = 200)
     {
         $this->_httpResponse->setStatusCode($status);
-        return $this->_httpResponse->setContent(json_encode($data, 
-            JSON_PRETTY_PRINT | 
-            JSON_UNESCAPED_UNICODE | 
-            JSON_UNESCAPED_SLASHES
-        ));
+        return json_encode($data);
     }
 }
