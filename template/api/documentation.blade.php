@@ -147,15 +147,41 @@ GET /apiv2/administration?sort=label&order=asc</code></pre>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"name":"test"}
 GET /apiv2/administration?filter={"label":"config"}</code></pre>
 
-                            <h4>5. Filtres avec opérateurs</h4>
+                            <h4>5. Création (CREATE)</h4>
+                            <p>Pour créer une nouvelle ressource, utilisez une requête POST.</p>
+                            <pre class="bg-light p-3 rounded"><code>POST /apiv2/{ressource}
+Content-Type: application/json
+
+{
+    "field1": "valeur",
+    "field2": "valeur"
+}</code></pre>
+                            <p>En cas de succès, la réponse contiendra la ressource créée avec son ID.</p>
+
+                            <h4>6. Mise à jour (UPDATE)</h4>
+                            <p>Pour mettre à jour une ressource, utilisez une requête POST avec l'ID de la ressource.</p>
+                            <pre class="bg-light p-3 rounded"><code>POST /apiv2/{ressource}/{id}
+Content-Type: application/json
+
+{
+    "field1": "nouvelle valeur",
+    "field2": "nouvelle valeur"
+}</code></pre>
+
+                            <h4>7. Suppression (DELETE)</h4>
+                            <p>Pour supprimer une ressource, utilisez une requête DELETE avec l'ID de la ressource.</p>
+                            <pre class="bg-light p-3 rounded"><code>DELETE /apiv2/{ressource}/{id}</code></pre>
+                            <p>La suppression retourne un code 204 en cas de succès.</p>
+
+                            <h4>8. Filtres avec opérateurs</h4>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"LIKE","value":"%test%"}}
 GET /apiv2/administration?filter={"administrationid":{"operator":">","value":"5"}}</code></pre>
 
-                            <h4>6. Filtres NULL</h4>
+                            <h4>9. Filtres NULL</h4>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"IS","value":null}}
 GET /apiv2/administration?filter={"value":{"operator":"IS NOT","value":null}}</code></pre>
 
-                            <h4>7. Combinaison de paramètres</h4>
+                            <h4>10. Combinaison de paramètres</h4>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?page=1&limit=10&sort=name&order=desc&filter={"value":{"operator":"LIKE","value":"%test%"}}</code></pre>
                         </div>
                     </div>
@@ -194,9 +220,30 @@ GET /apiv2/administration?filter={"value":{"operator":"IS NOT","value":null}}</c
                         <div class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                 <code>GET /apiv2/{{ strtolower($modelName) }}/{id}</code>
-                                <span class="badge bg-success">GET</span>
+                                <span class="badge bg-info">GET</span>
                             </div>
                             <small class="text-muted">Détail d'un élément</small>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <code>POST /apiv2/{{ strtolower($modelName) }}</code>
+                                <span class="badge bg-primary">POST</span>
+                            </div>
+                            <small class="text-muted">Création d'un élément</small>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <code>POST /apiv2/{{ strtolower($modelName) }}/{id}</code>
+                                <span class="badge bg-primary">POST</span>
+                            </div>
+                            <small class="text-muted">Mise à jour d'un élément</small>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <code>DELETE /apiv2/{{ strtolower($modelName) }}/{id}</code>
+                                <span class="badge bg-danger">DELETE</span>
+                            </div>
+                            <small class="text-muted">Suppression d'un élément</small>
                         </div>
                     </div>
                 </div>
