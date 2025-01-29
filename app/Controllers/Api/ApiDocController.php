@@ -97,50 +97,55 @@ class ApiDocController extends Controller
 
     private function generateModelDoc($modelName)
     {
-        $modelClass = "\\Models\\" . $modelName;
-        $model = new $modelClass();
-        $reflection = new ReflectionClass($modelClass);
-        
-        // Récupérer les propriétés du modèle
-        $schema = $modelClass::$SCHEMA ?? [];
-        $tableName = $modelClass::$TABLE_NAME ?? '';
-        $primaryKey = $modelClass::$TABLE_INDEX ?? '';
+        try {
+            $modelClass = "\\Models\\" . $modelName;
+            
+            // Vérifier si la classe existe
+            if (!class_exists($modelClass)) {
+                return $this->getEmptyModelStructure($modelName);
+            }
 
-        // Analyser le schéma pour les contraintes et relations
-        $fields = [];
-        foreach ($schema as $fieldName => $fieldData) {
-            $field = [
-                'name' => $fieldName,
-                'dbField' => $fieldData['field'],
-                'type' => $fieldData['type'],
-                'required' => !isset($fieldData['default']),
-                'default' => $fieldData['default'] ?? null
+            $model = new $modelClass();
+            
+            // Récupérer les propriétés du modèle
+            if (!property_exists($modelClass, 'SCHEMA')) {
+                return $this->getEmptyModelStructure($modelName);
+            }
+
+            $schema = $modelClass::$SCHEMA;
+            $table = $modelClass::$TABLE_NAME;
+            $index = $modelClass::$TABLE_INDEX;
+
+            // Analyser le schéma pour les contraintes et relations
+            $fields = [];
+            foreach ($schema as $fieldName => $fieldData) {
+                $fields[$fieldName] = [
+                    'name' => $fieldName,
+                    'type' => $fieldData['type'],
+                    'fieldType' => $fieldData['fieldType'],
+                    'required' => !isset($fieldData['default']),
+                    'default' => $fieldData['default']
+                ];
+            }
+
+            return [
+                'name' => $modelName,
+                'table' => $table,
+                'index' => $index,
+                'schema' => $schema
             ];
-
-            // Ajouter les contraintes spécifiques
-            if (isset($fieldData['enum'])) {
-                $field['enum'] = $fieldData['enum'];
-            }
-            if (isset($fieldData['min'])) {
-                $field['min'] = $fieldData['min'];
-            }
-            if (isset($fieldData['max'])) {
-                $field['max'] = $fieldData['max'];
-            }
-
-            $fields[$fieldName] = $field;
+        } catch (\Exception $e) {
+            return $this->getEmptyModelStructure($modelName);
         }
+    }
 
-        // Générer des exemples
-        $example = $this->generateExample($fields);
-        
+    private function getEmptyModelStructure($modelName)
+    {
         return [
             'name' => $modelName,
-            'tableName' => $tableName,
-            'primaryKey' => $primaryKey,
-            'fields' => $fields,
-            'example' => $example,
-            'endpoints' => $this->generateModelEndpoints($modelName)
+            'table' => '',
+            'index' => '',
+            'schema' => []
         ];
     }
 

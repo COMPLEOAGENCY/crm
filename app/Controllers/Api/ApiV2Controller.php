@@ -115,6 +115,19 @@ class ApiV2Controller extends Controller
             if (!in_array($direction, ['asc', 'desc'])) {
                 $direction = 'asc';
             }
+
+            // Valider le champ de tri
+            if ($orderBy) {
+                $modelClass = get_class($model);
+                if (!isset($modelClass::$SCHEMA[$orderBy])) {
+                    return [
+                        'success' => false,
+                        'message' => "Le champ de tri '$orderBy' n'existe pas dans le modèle"
+                    ];
+                }
+                // Utiliser le nom du champ SQL réel depuis le schéma
+                $orderBy = $modelClass::$SCHEMA[$orderBy]['field'];
+            }
             
             // Calculer l'offset pour la pagination
             $offset = ($page - 1) * $limit;
@@ -125,29 +138,61 @@ class ApiV2Controller extends Controller
             $jsonParameters = [];
 
             if (isset($params['filter'])) {
-                $filters = is_string($params['filter']) ? json_decode($params['filter'], true) : $params['filter'];
-                
-                if (json_last_error() === JSON_ERROR_NONE || is_array($filters)) {
+                try {
+                    $filters = is_string($params['filter']) ? json_decode($params['filter'], true) : $params['filter'];
+                    
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        return [
+                            'success' => false,
+                            'message' => 'Erreur de décodage JSON du filtre: ' . json_last_error_msg()
+                        ];
+                    }
+
+                    if (!is_array($filters)) {
+                        return [
+                            'success' => false,
+                            'message' => 'Le filtre doit être un objet JSON valide'
+                        ];
+                    }
+
+                    $modelClass = get_class($model);
                     foreach ($filters as $field => $value) {
                         // Vérifier si le champ existe dans le schéma du modèle
-                        if (isset(get_class($model)::$SCHEMA[$field])) {
-                            $schema = get_class($model)::$SCHEMA[$field];
-                            
-                            // Si c'est un champ JSON, on l'ajoute aux paramètres JSON
-                            if (isset($schema['type']) && $schema['type'] === 'json') {
-                                $jsonParameters[$field] = $value;
-                            }
-                            // Sinon c'est un champ SQL standard
-                            else {
-                                // Support des opérateurs de comparaison
-                                if (is_array($value) && isset($value['operator'], $value['value'])) {
-                                    $sqlParameters[] = [$schema['field'], $value['operator'], $value['value']];
-                                } else {
-                                    $sqlParameters[$schema['field']] = $value;
+                        if (!isset($modelClass::$SCHEMA[$field])) {
+                            return [
+                                'success' => false,
+                                'message' => "Le champ de filtre '$field' n'existe pas dans le modèle"
+                            ];
+                        }
+
+                        $schema = $modelClass::$SCHEMA[$field];
+                        $sqlField = $schema['field'];
+                        
+                        // Si c'est un champ JSON, on l'ajoute aux paramètres JSON
+                        if (isset($schema['type']) && $schema['type'] === 'json') {
+                            $jsonParameters[$sqlField] = $value;
+                        }
+                        // Sinon c'est un champ SQL standard
+                        else {
+                            // Support des opérateurs de comparaison
+                            if (is_array($value) && isset($value['operator'], $value['value'])) {
+                                if (!in_array($value['operator'], ['=', '>', '<', '>=', '<=', '!=', 'LIKE', 'IN', 'IS', 'IS NOT'])) {
+                                    return [
+                                        'success' => false,
+                                        'message' => "Opérateur '{$value['operator']}' non supporté"
+                                    ];
                                 }
+                                $sqlParameters[] = [$sqlField, $value['operator'], $value['value']];
+                            } else {
+                                $sqlParameters[] = [$sqlField, '=', $value];
                             }
                         }
                     }
+                } catch (\Exception $e) {
+                    return [
+                        'success' => false,
+                        'message' => 'Erreur lors du traitement des filtres: ' . $e->getMessage()
+                    ];
                 }
             }
             
@@ -158,33 +203,28 @@ class ApiV2Controller extends Controller
             // Récupérer la liste avec les paramètres de pagination, tri et filtres
             $results = $model->getList($limit, $sqlParameters, $jsonParameters, null, $orderBy, $direction);
             
-            if ($results === false) {
-                return $this->jsonResponse([
-                    'success' => false,
-                    'message' => 'Erreur lors de la récupération de la liste'
-                ], 500);
-            }
-            
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => '',
                 'pagination' => [
                     'page' => $page,
                     'limit' => $limit,
-                    'sort' => $orderBy,
-                    'order' => $direction
+                    'sort' => $params['sort'] ?? null,
+                    'order' => $direction,
+                    'total' => count($results)
                 ],
                 'filters' => [
                     'sql' => $sqlParameters,
                     'json' => $jsonParameters
                 ],
                 'result' => $results
-            ]);
+            ];
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
-                'message' => 'Erreur lors de la récupération de la liste: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Erreur lors de la récupération de la liste: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ];
         }
     }
 

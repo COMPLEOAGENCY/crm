@@ -5,175 +5,250 @@
 @section('content')
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12">
-            <h1>Documentation API v{{ $version }}</h1>
+        <!-- Menu latéral -->
+        <div class="col-md-3 col-lg-2">
+            <div class="position-sticky" style="top: 20px;">
+                <div class="list-group shadow-sm">
+                    <div class="list-group-item list-group-item-primary">Navigation</div>
+                    <a href="#general" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        Informations Générales
+                        <i class="fas fa-info-circle"></i>
+                    </a>
+                    <a href="#parametres" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        Paramètres
+                        <i class="fas fa-cogs"></i>
+                    </a>
+                    <a href="#exemples" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        Exemples
+                        <i class="fas fa-code"></i>
+                    </a>
+                    <div class="list-group-item list-group-item-primary">Modèles</div>
+                    @foreach($models as $modelName => $modelInfo)
+                        <a href="#model-{{ strtolower($modelName) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ $modelName }}
+                            <span class="badge bg-primary rounded-pill">{{ is_array($modelInfo['schema']) ? count($modelInfo['schema']) : 0 }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenu principal -->
+        <div class="col-md-9 col-lg-10">
+            <div class="pb-2 mb-4 border-bottom">
+                <h1>Documentation API v{{ $version }}</h1>
+                <p class="text-muted">Framework utilisé : <a href="https://github.com/COMPLEOAGENCY/Framework" target="_blank">COMPLEOAGENCY Framework <i class="fas fa-external-link-alt"></i></a></p>
+            </div>
             
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h2>Informations Générales</h2>
+            <div id="general" class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Informations Générales</h2>
                 </div>
                 <div class="card-body">
                     <h3>URL de Base</h3>
-                    <pre><code>{{ $baseUrl }}</code></pre>
+                    <pre class="bg-light p-3 rounded"><code>{{ $baseUrl }}</code></pre>
 
                     <h3>Authentification</h3>
                     <p>{{ $authentication['description'] }}</p>
-                    <pre><code>Authorization: Bearer {votre-token}</code></pre>
+                    <pre class="bg-light p-3 rounded"><code>Authorization: Bearer {votre-token}</code></pre>
 
                     <h3>Codes d'Erreur</h3>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($errors as $code => $description)
-                            <tr>
-                                <td><code>{{ $code }}</code></td>
-                                <td>{{ $description }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($errors as $code => $description)
+                                <tr>
+                                    <td><code>{{ $code }}</code></td>
+                                    <td>{{ $description }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <h2>Modèles et Points d'Accès</h2>
-            @foreach($models as $modelName => $modelInfo)
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3>{{ $modelName }}</h3>
-                    <small>Table: {{ $modelInfo['tableName'] }}, Clé primaire: {{ $modelInfo['primaryKey'] }}</small>
+            <div id="parametres" class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Paramètres de l'API</h2>
                 </div>
                 <div class="card-body">
-                    <h4>Structure des Données</h4>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Champ</th>
-                                <th>Type</th>
-                                <th>Requis</th>
-                                <th>Valeur par défaut</th>
-                                <th>Contraintes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($modelInfo['fields'] as $field => $info)
-                            <tr>
-                                <td><code>{{ $field }}</code></td>
-                                <td>{{ $info['type'] }}</td>
-                                <td>{{ $info['required'] ? 'Oui' : 'Non' }}</td>
-                                <td><code>{{ $info['default'] ?? 'NULL' }}</code></td>
-                                <td>
-                                    @if(isset($info['enum']))
-                                        Valeurs possibles: {{ implode(', ', $info['enum']) }}
-                                    @endif
-                                    @if(isset($info['min']))
-                                        Min: {{ $info['min'] }}
-                                    @endif
-                                    @if(isset($info['max']))
-                                        Max: {{ $info['max'] }}
-                                    @endif
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3>Paramètres de pagination</h3>
+                            <ul class="list-group mb-4">
+                                <li class="list-group-item"><code>page</code> : Numéro de la page (défaut: 1)</li>
+                                <li class="list-group-item"><code>limit</code> : Nombre d'éléments par page (défaut: 1000)</li>
+                            </ul>
 
-                    <h4>Points d'Accès</h4>
+                            <h3>Paramètres de tri</h3>
+                            <ul class="list-group mb-4">
+                                <li class="list-group-item"><code>sort</code> : Champ sur lequel trier</li>
+                                <li class="list-group-item"><code>order</code> : Direction du tri (asc/desc)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h3>Paramètres de filtrage</h3>
+                            <div class="alert alert-info">
+                                Le paramètre <code>filter</code> accepte un objet JSON avec les options suivantes :
+                            </div>
+                            <ul class="list-group mb-4">
+                                <li class="list-group-item">Filtre simple : <code>{"champ": "valeur"}</code></li>
+                                <li class="list-group-item">Filtre avec opérateur : <code>{"champ": {"operator": "OPERATEUR", "value": "VALEUR"}}</code></li>
+                            </ul>
+                            
+                            <h4>Opérateurs supportés</h4>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <tbody>
+                                        <tr><td><code>=</code></td><td>Égal à (défaut)</td></tr>
+                                        <tr><td><code>></code></td><td>Supérieur à</td></tr>
+                                        <tr><td><code><</code></td><td>Inférieur à</td></tr>
+                                        <tr><td><code>>=</code></td><td>Supérieur ou égal à</td></tr>
+                                        <tr><td><code><=</code></td><td>Inférieur ou égal à</td></tr>
+                                        <tr><td><code>!=</code></td><td>Différent de</td></tr>
+                                        <tr><td><code>LIKE</code></td><td>Recherche avec wildcards (%)</td></tr>
+                                        <tr><td><code>IN</code></td><td>Dans une liste de valeurs</td></tr>
+                                        <tr><td><code>IS</code></td><td>Pour les valeurs NULL</td></tr>
+                                        <tr><td><code>IS NOT</code></td><td>Pour les valeurs non NULL</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exemples" class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Exemples d'utilisation</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>1. Liste simple</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration</code></pre>
+
+                            <h4>2. Pagination</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?page=1&limit=10</code></pre>
+
+                            <h4>3. Tri</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?sort=name&order=desc
+GET /apiv2/administration?sort=label&order=asc</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>4. Filtres simples</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"name":"test"}
+GET /apiv2/administration?filter={"label":"config"}</code></pre>
+
+                            <h4>5. Filtres avec opérateurs</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"LIKE","value":"%test%"}}
+GET /apiv2/administration?filter={"administrationid":{"operator":">","value":"5"}}</code></pre>
+
+                            <h4>6. Filtres NULL</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"IS","value":null}}
+GET /apiv2/administration?filter={"value":{"operator":"IS NOT","value":null}}</code></pre>
+
+                            <h4>7. Combinaison de paramètres</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?page=1&limit=10&sort=name&order=desc&filter={"value":{"operator":"LIKE","value":"%test%"}}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="border-bottom pb-2 mb-4">Modèles et Points d'Accès</h2>
+            @foreach($models as $modelName => $modelInfo)
+            <div id="model-{{ strtolower($modelName) }}" class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">{{ $modelName }}</h3>
+                    <span class="badge bg-light text-primary">{{ is_array($modelInfo['schema']) ? count($modelInfo['schema']) : 0 }} champs</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Table :</strong> <code>{{ $modelInfo['table'] }}</code></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Identifiant :</strong> <code>{{ $modelInfo['index'] }}</code></p>
+                        </div>
+                    </div>
                     
-                    <h5>Lister les éléments</h5>
-                    <pre><code>GET {{ $modelInfo['endpoints']['list'] }}</code></pre>
-                    <p>Paramètres de requête :</p>
-                    <ul>
-                        <li><code>page</code> : Numéro de page (optionnel, défaut: 1)</li>
-                        <li><code>limit</code> : Nombre d'éléments par page (optionnel, défaut: 1000)</li>
-                        <li><code>sort</code> : Champ de tri (optionnel)</li>
-                        <li><code>order</code> : Direction du tri (asc/desc) (optionnel, défaut: asc)</li>
-                        <li>
-                            <code>filter</code> : Filtres à appliquer (optionnel)<br>
-                            Peut être passé en JSON ou en tableau PHP :
-                            <ul>
-                                <li>Format JSON : <code>?filter={"name":"John","age":{"operator":">","value":25}}</code></li>
-                                <li>Format tableau : <code>?filter[name]=John&filter[age][operator]=>&filter[age][value]=25</code></li>
-                            </ul>
-                            Types de filtres supportés :
-                            <ul>
-                                <li>Filtre simple : <code>{"field": "value"}</code></li>
-                                <li>Filtre avec opérateur : <code>{"field": {"operator": ">", "value": 25}}</code></li>
-                            </ul>
-                            Opérateurs disponibles : =, >, <, >=, <=, !=, LIKE, IN
-                        </li>
-                    </ul>
+                    <h4>Schéma</h4>
+                    <pre class="bg-light p-3 rounded"><code>{{ json_encode($modelInfo['schema'], JSON_PRETTY_PRINT) }}</code></pre>
 
-                    <p>Exemple de réponse :</p>
-                    <pre><code>{
-    "success": true,
-    "message": "",
-    "pagination": {
-        "page": 1,
-        "limit": 10,
-        "sort": "created_at",
-        "order": "desc"
-    },
-    "filters": {
-        "sql": {
-            "status": "active",
-            "age": [">", 25]
-        },
-        "json": {
-            "preferences": {"theme": "dark"}
-        }
-    },
-    "result": [...]
-}</code></pre>
-
-                    <h5>Obtenir un élément</h5>
-                    <pre><code>GET {{ $modelInfo['endpoints']['get'] }}</code></pre>
-
-                    <h5>Créer un élément</h5>
-                    <pre><code>POST {{ $modelInfo['endpoints']['create'] }}
-Content-Type: application/json
-
-@json($modelInfo['example'], JSON_PRETTY_PRINT)</code></pre>
-
-                    <h5>Mettre à jour un élément</h5>
-                    <pre><code>PUT {{ $modelInfo['endpoints']['update'] }}
-Content-Type: application/json
-
-@json($modelInfo['example'], JSON_PRETTY_PRINT)</code></pre>
-
-                    <h5>Supprimer un élément</h5>
-                    <pre><code>DELETE {{ $modelInfo['endpoints']['delete'] }}</code></pre>
+                    <h4>Points d'accès</h4>
+                    <div class="list-group">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <code>GET /apiv2/{{ strtolower($modelName) }}</code>
+                                <span class="badge bg-success">GET</span>
+                            </div>
+                            <small class="text-muted">Liste des éléments</small>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <code>GET /apiv2/{{ strtolower($modelName) }}/{id}</code>
+                                <span class="badge bg-success">GET</span>
+                            </div>
+                            <small class="text-muted">Détail d'un élément</small>
+                        </div>
+                    </div>
                 </div>
             </div>
             @endforeach
         </div>
     </div>
 </div>
-@endsection
 
-@section('custom-css')
 <style>
+/* Style pour le menu latéral */
+.position-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.list-group-item {
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+}
+
+.list-group-item-primary {
+    font-weight: bold;
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+/* Style pour les ancres */
+[id] {
+    scroll-margin-top: 20px;
+}
+
+/* Style pour le code */
 pre {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 4px;
-    margin: 10px 0;
+    margin: 0;
+    white-space: pre-wrap;
 }
+
 code {
-    color: #e83e8c;
-    background-color: #f8f9fa;
-    padding: 2px 4px;
-    border-radius: 3px;
+    color: var(--bs-primary);
 }
-.table td, .table th {
-    vertical-align: middle;
-}
-h5 {
-    margin-top: 20px;
+
+/* Responsive */
+@media (max-width: 768px) {
+    .position-sticky {
+        position: relative;
+        max-height: none;
+        margin-bottom: 1rem;
+    }
 }
 </style>
 @endsection

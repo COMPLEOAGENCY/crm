@@ -235,13 +235,13 @@ abstract class Model
      * Récupère un enregistrement de la base de données.
      * 
      * @param int $id L'identifiant de l'objet à récupérer.
-     * @return Model|bool L'instance du modèle hydraté. En cas d'échec, retourne `false`.
+     * @return Model|bool L'instance du modèle hydraté. En cas de liste vide [].
      */
     public function getList($limit = null, array $sqlParameters = null, array $jsonParameters = null, $groupBy = null,$orderBy = null,$direction = 'asc')
     {         
         $results = Database::instance()->fetch(static::$TABLE_NAME, $limit, $sqlParameters, $jsonParameters, $groupBy,$orderBy,$direction);
 
-        return $results ? $this->processResults($results) : false;
+        return $results ? $this->processResults($results) : [];
     }
     
     public function getListDistinctField($column = [],array $jsonKeys = [], $limit = null, array $sqlParameters = [], $groupBy = null ,$reorder = true)
