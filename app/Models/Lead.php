@@ -351,106 +351,96 @@ class Lead extends Model
         )
     );
 
+    protected $questions = [];
+
     public function __construct($data = [])
     {
         parent::__construct($data);
     }
 
-    /**
-     * Synchronise le lead avec le système externe LEA
-     * @return bool Succès ou échec de la synchronisation
-     */
-    public function synchronizeLea(): bool
-    {
-        $result = ['result' => 'failure'];
-
-        if ($this->leadId > 0 && ($this->statut == "valid" || $this->statut == "deversoir")) {
-            $url = URL_SITE . "/api/solutravaux/update.php?entity=lead&id=" . $this->leadId;
-            
-            $curlRequest = trim(curlRequest($url));
-            $result = !empty($curlRequest) ? json_decode($curlRequest, true) : ['result' => 'failure'];
-            
-            if ($result['result'] == 'success') {
-                $this->refreshFromDatabase();
-                $this->synchronization = $result;
-                return true;
-            }
-            return false;
-        }
+    public function afterGet() 
+    {       
+        // Récupérer les métadonnées
+        $meta = new Meta();
+        $metaData = $meta->getAllMetaForRow($this->leadId, 'lead', false);
         
-        return false;
-    }
-
-    /**
-     * Synchronise le lead avec le système PRO
-     * @return bool Succès ou échec de la synchronisation
-     */
-    public function synchronizePro(): bool
-    {
-        $result = ['result' => 'failure'];
-
-        if ($this->leadId > 0) {
-            $url = URL_SITE . "/api/solutravaux/update.php?entity=projet&id=" . $this->leadId;
-            
-            $curlRequest = trim(curlRequest($url));
-            $result = !empty($curlRequest) ? json_decode($curlRequest, true) : ['result' => 'failure'];
-            
-            if ($result['result'] == 'success') {
-                $this->refreshFromDatabase();
-                $this->synchronization = $result;
-                return true;
-            }
-            return false;
-        }
-
-        return false;
-    }
-
-    /**
-     * Rafraîchit l'objet avec les données de la base de données
-     */
-    private function refreshFromDatabase(): void
-    {
-        if ($this->leadId) {
-            $freshLead = $this->get($this->leadId);
-            if ($freshLead) {
-                foreach ($freshLead as $key => $value) {
-                    $this->$key = $value;
+        if ($metaData) {
+            foreach ($metaData as $data) {
+                if (!empty($data->value)) {
+                    $question = new Question();
+                    $questionObj = $question->getQuestionByLabel($data->label);
+                    
+                    if ($questionObj && is_array($questionObj) && count($questionObj) > 0) {
+                        $string = str_ireplace(" ", "_", strtolower($questionObj[0]->label));
+                        $this->$string = strtolower($data->value);
+                        $this->questions[$data->label] = $data->value;
+                    }
                 }
             }
         }
     }
 
     /**
-     * Surcharge de la méthode save pour gérer la synchronisation
+     * Enregistre les métadonnées pour un lead
+     * 
+     * @param array $data Les données à enregistrer
+     * @return bool
      */
-    public function save()
+    public function recordLeadMeta($data)
     {
-        // Vérifier si le statut est autorisé
-        $allowedStatuts = ["valid", "pending", "deversoir", "reject", "deleted"];
-        if (!empty($this->statut) && !in_array($this->statut, $allowedStatuts)) {
+        if (empty($data) || empty($this->leadId)) {
             return false;
         }
 
-        // Gérer l'état par défaut si vide
-        if (empty($this->state) && !empty($this->cp)) {
-            $this->state = substr($this->cp, 0, 2);
+        if (!is_array($data)) {
+            $data = (array) $data;
         }
 
-        // Gérer le pays par défaut
-        if (empty($this->country)) {
-            $this->country = "FR";
+        // Récupérer les champs de la campagne
+        $campaign = new Campaign();
+        $fields = $campaign->getFieldsByCampaignId($this->campaignid);
+        
+        if (empty($fields)) {
+            return true; // Pas de champs à enregistrer
         }
 
-        // Sauvegarder
-        $result = parent::save();
+        $meta = new Meta();
+        $success = true;
 
-        // Synchroniser si nécessaire
-        if ($result && ($this->statut == "valid" || $this->statut == "deversoir")) {
-            $this->synchronizeLea();
-            $this->synchronizePro();
+        foreach ($fields as $label => $field) {
+            if (isset($data[$label])) {
+                $value = $data[$label];
+                
+                // Traitement spécial pour les champs de type select
+                if (isset($field['type']) && $field['type'] === 'select' && is_numeric($value)) {
+                    if (isset($field['default_values'][$value - 1]) && !is_numeric($field['default_values'][$value - 1])) {
+                        $value = $field['default_values'][$value - 1];
+                    }
+                }
+
+                if (!empty(trim($value))) {
+                    if (!$meta->addRowValue('lead', $this->leadId, $label, $value)) {
+                        $success = false;
+                    }
+                }
+            }
         }
 
-        return $result;
+        return $success;
+    }
+
+    /**
+     * Récupère toutes les métadonnées d'un lead
+     * 
+     * @return array|false
+     */
+    public function getMeta()
+    {
+        if (empty($this->leadId)) {
+            return false;
+        }
+
+        $meta = new Meta();
+        return $meta->getAllMetaForRow($this->leadId, 'lead');
     }
 }

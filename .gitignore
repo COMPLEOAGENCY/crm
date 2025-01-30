@@ -34,3 +34,4 @@ auth.json
 /app/logs
 /app/logs
 .windsurfrules
+/legacy
