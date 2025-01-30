@@ -16,7 +16,6 @@
         }
     ],    
     "repositories":[
-
         { "name": "marciv/Framework", "type": "vcs", "url": "https://github.com/marciv/Framework.git" }
     ],        
     "minimum-stability": "dev",
@@ -47,6 +46,14 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^1.10"
+    },
+    "scripts": {
+        "start:dev": "php -S localhost:8000 public/router.php",
+        "start:mysql": "\"c:/wamp64/bin/mysql/mysql8.0.31/bin/mysqld.exe\"",
+        "start:all": [
+            "@start:mysql",
+            "@start:dev"
+        ]
     },
     "config": {
         "allow-plugins": {

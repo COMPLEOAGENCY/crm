@@ -15,7 +15,7 @@ if(isset($_GET['debug'])){
     $debugbar['time']->startMeasure('Execution', 'Total App execution time');  
 }
 
-require './../config/settings.php';
+require __DIR__ . '/../config/settings.php';
 set_error_handler('exceptions_error_handler');
 
 function exceptions_error_handler($severity, $message, $filename, $lineno)
