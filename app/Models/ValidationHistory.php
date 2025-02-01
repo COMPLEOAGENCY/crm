@@ -93,27 +93,10 @@ class ValidationHistory extends Model
      * @param string $leadId ID du lead
      * @return array Liste des validations
      */
-    public function getHistoryForLead(string $leadId): array
+    public function getByLeadId(string $leadId): array
     {
         return $this->getList(null, ['leadid' => $leadId], null, null, 'timestamp', 'desc');
     }
 
-    /**
-     * Ajoute une nouvelle entrée d'historique
-     *
-     * @param array $validationData Données de validation
-     * @return bool
-     */
-    public function addHistoryEntry(array $validationData): bool
-    {
-        $this->timestamp = time();
-        
-        foreach ($validationData as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->$key = $value;
-            }
-        }
-        
-        return $this->save();
-    }
+
 }

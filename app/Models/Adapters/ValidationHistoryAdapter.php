@@ -1,119 +1,79 @@
 <?php
 
-namespace App\Models\Adapters;
+namespace Models\Adapters;
 
 use Models\Lead as LegacyLead;
 use Models\ValidationHistory;
 
 class ValidationHistoryAdapter implements LeadComponentInterface
 {
+    public static array $SCHEMA = [
+        'exists' => ['field' => 'exists', 'type' => 'boolean'],
+        'data' => [
+            'type' => 'collection',
+            'fields' => [
+                'historyId' => ['field' => 'historyId', 'type' => 'int'],
+                'leadId' => ['field' => 'leadId', 'type' => 'int'],
+                'timestamp' => ['field' => 'timestamp', 'type' => 'datetime'],
+                'userId' => ['field' => 'userId', 'type' => 'int'],
+                'action' => ['field' => 'action', 'type' => 'string'],
+                'field' => ['field' => 'field', 'type' => 'string'],
+                'oldValue' => ['field' => 'oldValue', 'type' => 'string'],
+                'newValue' => ['field' => 'newValue', 'type' => 'string']
+            ]
+        ]
+    ];
+
     private LegacyLead $legacyLead;
-    private ValidationHistory $validationHistory;
-    private array $history = [];
+    private ?array $history = null;
     
     public function __construct(LegacyLead $legacyLead)
     {
         $this->legacyLead = $legacyLead;
-        $this->validationHistory = new ValidationHistory();
         $this->loadHistory();
     }
     
     private function loadHistory(): void
     {
         if ($this->legacyLead->leadId) {
-            $this->history = $this->validationHistory->getHistoryForLead($this->legacyLead->leadId);
+            $validationHistory = new ValidationHistory();
+            $this->history = $validationHistory->getByLeadId($this->legacyLead->leadId);
         }
     }
     
     public function getData(): array
     {
-        $formattedHistory = [];
-        foreach ($this->history as $entry) {
-            $formattedHistory[] = [
-                'id' => $entry->validationHistoryId,
-                'timestamp' => $entry->timestamp,
-                'validationId' => $entry->validationId,
-                'result' => $entry->validationResult,
-                'scoring' => $entry->scoringAction,
-                'status' => $entry->statutAction,
-                'validations' => [
-                    'phone' => $entry->phoneVal,
-                    'phone2' => $entry->phone2Val,
-                    'email' => $entry->emailVal,
-                    'city' => $entry->cityVal
-                ]
+        if (!$this->history) {
+            return [
+                'exists' => false,
+                'data' => []
             ];
         }
-        
+
+        $historyData = [];
+        foreach ($this->history as $item) {
+            $itemData = [];
+            foreach (self::$SCHEMA['data']['fields'] as $fieldKey => $fieldConfig) {
+                $fieldName = $fieldConfig['field'];
+                $itemData[$fieldKey] = $item->$fieldName ?? null;
+            }
+            $historyData[] = $itemData;
+        }
+
         return [
-            'count' => count($this->history),
-            'entries' => $formattedHistory
+            'exists' => true,
+            'data' => $historyData
         ];
     }
     
     public function setData(array $data): void
     {
-        // Créer une nouvelle entrée d'historique
-        $validationData = [
-            'leadId' => $this->legacyLead->leadId,
-            'validationId' => $data['validationId'] ?? '',
-            'validationResult' => $data['result'] ?? '',
-            'scoringAction' => $data['scoring'] ?? '',
-            'statutAction' => $data['status'] ?? '',
-            'phoneVal' => $data['validations']['phone'] ?? '',
-            'phone2Val' => $data['validations']['phone2'] ?? '',
-            'emailVal' => $data['validations']['email'] ?? '',
-            'cityVal' => $data['validations']['city'] ?? ''
-        ];
-        
-        $this->validationHistory = new ValidationHistory();
-        $this->validationHistory->addHistoryEntry($validationData);
-        
-        // Recharger l'historique
-        $this->loadHistory();
+        // Non implémenté car en lecture seule
     }
     
     public function save(): bool
     {
-        return true; // La sauvegarde est déjà gérée dans setData()
-    }
-    
-    /**
-     * Récupère la dernière entrée de l'historique
-     */
-    public function getLatestEntry(): ?array
-    {
-        if (empty($this->history)) {
-            return null;
-        }
-        
-        $latest = reset($this->history); // Premier élément car trié par timestamp DESC
-        return [
-            'id' => $latest->validationHistoryId,
-            'timestamp' => $latest->timestamp,
-            'validationId' => $latest->validationId,
-            'result' => $latest->validationResult,
-            'scoring' => $latest->scoringAction,
-            'status' => $latest->statutAction,
-            'validations' => [
-                'phone' => $latest->phoneVal,
-                'phone2' => $latest->phone2Val,
-                'email' => $latest->emailVal,
-                'city' => $latest->cityVal
-            ]
-        ];
-    }
-    
-    /**
-     * Vérifie si une validation spécifique existe dans l'historique
-     */
-    public function hasValidation(string $validationId): bool
-    {
-        foreach ($this->history as $entry) {
-            if ($entry->validationId === $validationId) {
-                return true;
-            }
-        }
-        return false;
+        // Non implémenté car en lecture seule
+        return true;
     }
 }

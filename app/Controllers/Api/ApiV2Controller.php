@@ -5,11 +5,123 @@ use Framework\Controller;
 use Framework\HttpRequest;
 use Framework\HttpResponse;
 use Framework\CacheManager;
+use Models;
 
+/**
+ * Contrôleur pour l'API V2
+ * 
+ * Ce contrôleur gère les requêtes API REST pour les ressources du CRM.
+ * Il supporte les opérations CRUD (Create, Read, Update, Delete) sur les modèles,
+ * avec des fonctionnalités avancées comme le filtrage, le tri et la pagination.
+ * 
+ * Endpoints disponibles :
+ * - GET /apiv2/leadmanager : Liste des leads
+ * - GET /apiv2/leadmanager/{id} : Détails d'un lead
+ * - POST /apiv2/leadmanager : Création d'un lead
+ * - PUT /apiv2/leadmanager/{id} : Mise à jour d'un lead
+ * - DELETE /apiv2/leadmanager/{id} : Suppression d'un lead
+ * 
+ * Paramètres de liste :
+ * - page : Numéro de page (défaut: 1)
+ * - limit : Nombre d'éléments par page (défaut: 100, max: 1000)
+ * - sort : Champ de tri
+ * - order : Direction du tri (asc/desc)
+ * - filter : Filtres au format JSON
+ * 
+ * Exemples de filtrage pour LeadManager :
+ * 
+ * 1. Filtre simple sur un champ :
+ *    ?filter={"leadId": 123}
+ * 
+ * 2. Filtre avec opérateur :
+ *    ?filter={"createdAt": {"operator": ">", "value": "2025-01-01"}}
+ * 
+ * 3. Filtre sur champ imbriqué (relation) :
+ *    ?filter={"contact[phone]": "0612345678"}
+ *    ?filter={"contact[email]": {"operator": "LIKE", "value": "%@gmail.com"}}
+ * 
+ * 4. Filtres multiples :
+ *    ?filter={
+ *      "contact[firstName]": "John",
+ *      "project[address][city]": "Paris",
+ *      "sales[price]": {"operator": ">", "value": 1000}
+ *    }
+ * 
+ * Exemples de tri pour LeadManager :
+ * 
+ * 1. Tri simple :
+ *    ?sort=leadId&order=desc
+ * 
+ * 2. Tri sur champ imbriqué :
+ *    ?sort=contact[lastName]&order=asc
+ * 
+ * Structure du schéma LeadManager :
+ * - leadId (int)
+ * - createdAt (datetime)
+ * - updatedAt (datetime)
+ * - contact (relation)
+ *   - civility (string)
+ *   - firstName (string)
+ *   - lastName (string)
+ *   - email (string)
+ *   - phone (string)
+ *   - phone2 (string)
+ * - project (relation)
+ *   - address
+ *     - address1 (string)
+ *     - address2 (string)
+ *     - postalCode (string)
+ *     - city (string)
+ *     - country (string)
+ * - purchase (relation)
+ *   - exists (boolean)
+ *   - data
+ *     - purchaseId (int)
+ *     - timestamp (datetime)
+ *     - price (float)
+ * - sales (relation)
+ *   - exists (boolean)
+ *   - data
+ *     - saleId (int)
+ *     - timestamp (datetime)
+ *     - price (float)
+ * 
+ * Réponse type :
+ * {
+ *   "success": true,
+ *   "message": "",
+ *   "pagination": {
+ *     "page": 1,
+ *     "limit": 100,
+ *     "sort": "leadId",
+ *     "order": "desc",
+ *     "total": 50
+ *   },
+ *   "filters": {
+ *     "sql": [...],
+ *     "json": []
+ *   },
+ *   "result": [...]
+ * }
+ */
 class ApiV2Controller extends Controller 
 {
+    /** @var array Opérateurs valides pour le filtrage */
+    private const VALID_OPERATORS = ['=', '>', '<', '>=', '<=', '!=', 'LIKE', 'IN', 'IS', 'IS NOT'];
+    
+    /** @var array Directions valides pour le tri */
+    private const VALID_SORT_DIRECTIONS = ['asc', 'desc'];
+
     private $cacheManager;
     
+    /**
+     * Constructeur du contrôleur
+     * 
+     * Initialise les propriétés et configure les headers HTTP pour l'API.
+     * 
+     * @param HttpRequest $httpRequest Objet de requête HTTP
+     * @param HttpResponse $httpResponse Objet de réponse HTTP
+     */
     public function __construct(HttpRequest $httpRequest, HttpResponse $httpResponse)
     {
         parent::__construct($httpRequest, $httpResponse);
@@ -22,13 +134,22 @@ class ApiV2Controller extends Controller
         $this->_httpResponse->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     }
 
+    /**
+     * Point d'entrée principal de l'API
+     * 
+     * Traite toutes les requêtes entrantes et les route vers les handlers appropriés
+     * en fonction de la méthode HTTP et des paramètres.
+     * 
+     * @param array $params Paramètres de la requête
+     * @return array Réponse formatée en JSON
+     */
     public function handleRequest($params = [])
     {
         try {
             // Récupération des paramètres de la requête
             $resource = $params['resource'] ?? null;
             $id = $params['id'] ?? null;
-            $limit = $params['limit'] ?? 1000;
+            $limit = $params['limit'] ?? 100;
             $requestData = $this->_httpRequest->getParams();
 
             // Déterminer la méthode en fonction de la requête HTTP et des paramètres
@@ -44,13 +165,12 @@ class ApiV2Controller extends Controller
             } else {
                 $method = 'get';
             }
-
             // Vérification de la ressource
             if (!$resource || !class_exists("\\Models\\" . ucfirst($resource))) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => 'Resource non définie ou invalide'
-                ], 404);
+                ];
             }
 
             // Création de l'instance du modèle
@@ -64,10 +184,10 @@ class ApiV2Controller extends Controller
 
                 case 'get':
                     if (!$id) {
-                        return $this->jsonResponse([
+                        return [
                             'success' => false,
                             'message' => 'ID requis pour la méthode GET'
-                        ], 400);
+                        ];
                     }
                     return $this->handleGet($model, $id);
 
@@ -79,180 +199,309 @@ class ApiV2Controller extends Controller
 
                 case 'delete':
                     if (!$id) {
-                        return $this->jsonResponse([
+                        return [
                             'success' => false,
                             'message' => 'ID requis pour la méthode DELETE'
-                        ], 400);
+                        ];
                     }
                     return $this->handleDelete($model, $id);
 
                 default:
-                    return $this->jsonResponse([
+                    return [
                         'success' => false,
                         'message' => 'Méthode non supportée'
-                    ], 405);
+                    ];
             }
 
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
                 'message' => 'Erreur serveur: ' . $e->getMessage(),
                 'debug' => isset($params['debug']) ? $e->getTrace() : null
-            ], 500);
+            ];
         }
     }
 
-    private function handleList($model, $limit, $params)
+    /**
+     * Gère la récupération d'une liste d'éléments
+     * 
+     * Supporte :
+     * - Pagination (page, limit)
+     * - Tri (sort, order)
+     * - Filtrage (filter)
+     * 
+     * @param object $model Instance du modèle
+     * @param int $limit Nombre maximum d'éléments à retourner
+     * @param array $params Paramètres de la requête
+     * @return array Réponse contenant la liste et les métadonnées
+     */
+    private function handleList($model, $limit, $params): array
     {
         try {
-            // Récupérer les paramètres de pagination et tri
-            $page = isset($params['page']) ? (int)$params['page'] : 1;
-            $limit = isset($params['limit']) ? (int)$params['limit'] : $limit;
-            $orderBy = $params['sort'] ?? null;
-            $direction = isset($params['order']) ? strtolower($params['order']) : 'asc';
-            
-            // Valider la direction du tri
-            if (!in_array($direction, ['asc', 'desc'])) {
-                $direction = 'asc';
+            // Configuration de base
+            $config = $this->getListConfig($params, $limit);
+            if (!$config['success']) {
+                return $config;
             }
 
-            // Valider le champ de tri
-            if ($orderBy) {
-                $modelClass = get_class($model);
-                if (!isset($modelClass::$SCHEMA[$orderBy])) {
-                    return [
-                        'success' => false,
-                        'message' => "Le champ de tri '$orderBy' n'existe pas dans le modèle"
-                    ];
-                }
-                // Utiliser le nom du champ SQL réel depuis le schéma
-                $orderBy = $modelClass::$SCHEMA[$orderBy]['field'];
+            // Traitement des filtres
+            $filters = $this->parseFilters($params['filter'] ?? null, $model);
+            if (!$filters['success']) {
+                return $filters;
             }
-            
-            // Calculer l'offset pour la pagination
-            $offset = ($page - 1) * $limit;
-            if ($offset < 0) $offset = 0;
 
-            // Traiter les filtres
-            $sqlParameters = [];
-            $jsonParameters = [];
-
-            if (isset($params['filter'])) {
-                try {
-                    $filters = is_string($params['filter']) ? json_decode($params['filter'], true) : $params['filter'];
-                    
-                    if (json_last_error() !== JSON_ERROR_NONE) {
-                        return [
-                            'success' => false,
-                            'message' => 'Erreur de décodage JSON du filtre: ' . json_last_error_msg()
-                        ];
-                    }
-
-                    if (!is_array($filters)) {
-                        return [
-                            'success' => false,
-                            'message' => 'Le filtre doit être un objet JSON valide'
-                        ];
-                    }
-
-                    $modelClass = get_class($model);
-                    foreach ($filters as $field => $value) {
-                        // Vérifier si le champ existe dans le schéma du modèle
-                        if (!isset($modelClass::$SCHEMA[$field])) {
-                            return [
-                                'success' => false,
-                                'message' => "Le champ de filtre '$field' n'existe pas dans le modèle"
-                            ];
-                        }
-
-                        $schema = $modelClass::$SCHEMA[$field];
-                        $sqlField = $schema['field'];
-                        
-                        // Si c'est un champ JSON, on l'ajoute aux paramètres JSON
-                        if (isset($schema['type']) && $schema['type'] === 'json') {
-                            $jsonParameters[$sqlField] = $value;
-                        }
-                        // Sinon c'est un champ SQL standard
-                        else {
-                            // Support des opérateurs de comparaison
-                            if (is_array($value) && isset($value['operator'], $value['value'])) {
-                                if (!in_array($value['operator'], ['=', '>', '<', '>=', '<=', '!=', 'LIKE', 'IN', 'IS', 'IS NOT'])) {
-                                    return [
-                                        'success' => false,
-                                        'message' => "Opérateur '{$value['operator']}' non supporté"
-                                    ];
-                                }
-                                $sqlParameters[] = [$sqlField, $value['operator'], $value['value']];
-                            } else {
-                                $sqlParameters[] = [$sqlField, '=', $value];
-                            }
-                        }
-                    }
-                } catch (\Exception $e) {
-                    return [
-                        'success' => false,
-                        'message' => 'Erreur lors du traitement des filtres: ' . $e->getMessage()
-                    ];
-                }
-            }
-            
-            // Filtrer les paramètres non pertinents
-            unset($params['resource'], $params['method'], $params['limit'], $params['debug'],
-                  $params['page'], $params['sort'], $params['order'], $params['filter']);
-            
-            // Récupérer la liste avec les paramètres de pagination, tri et filtres
-            $results = $model->getList($limit, $sqlParameters, $jsonParameters, null, $orderBy, $direction);
+            // Récupération des résultats
+            $results = $model->getList(
+                $config['limit'], 
+                $filters['parameters'] ?? [], 
+                [], 
+                null, 
+                $config['orderBy'], 
+                $config['direction']
+            );
             
             return [
                 'success' => true,
                 'message' => '',
                 'pagination' => [
-                    'page' => $page,
-                    'limit' => $limit,
+                    'page' => $config['page'],
+                    'limit' => $config['limit'],
                     'sort' => $params['sort'] ?? null,
-                    'order' => $direction,
+                    'order' => $config['direction'],
                     'total' => count($results)
                 ],
                 'filters' => [
-                    'sql' => $sqlParameters,
-                    'json' => $jsonParameters
+                    'sql' => $filters['parameters'] ?? [],
+                    'json' => []
                 ],
                 'result' => $results
             ];
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Erreur lors de la récupération de la liste: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'message' => "Erreur lors de la récupération de la liste : {$e->getMessage()}"
             ];
         }
     }
 
+    /**
+     * Configure les paramètres de liste (pagination et tri)
+     * 
+     * @param array $params Paramètres de la requête
+     * @param int $limit Limite par défaut
+     * @return array Configuration validée
+     */
+    private function getListConfig(array $params, int $limit): array
+    {
+        // Pagination
+        $page = max(1, (int)($params['page'] ?? 1));
+        $limit = min(1000, max(1, (int)$limit));
+        
+        // Tri
+        $orderBy = $params['sort'] ?? null;
+        $direction = strtolower($params['order'] ?? 'asc');
+        
+        if (!in_array($direction, self::VALID_SORT_DIRECTIONS)) {
+            $direction = 'asc';
+        }
+
+        return [
+            'success' => true,
+            'page' => $page,
+            'limit' => $limit,
+            'orderBy' => $orderBy,
+            'direction' => $direction
+        ];
+    }
+
+    /**
+     * Parse et valide les filtres de la requête
+     * 
+     * Supporte :
+     * - Filtres simples : {"field": "value"}
+     * - Filtres avec opérateur : {"field": {"operator": "=", "value": "test"}}
+     * - Filtres imbriqués : {"relation[field]": "value"}
+     * 
+     * @param mixed $filterData Données de filtre (JSON ou array)
+     * @param object $model Instance du modèle pour validation
+     * @return array Filtres parsés et validés
+     */
+    private function parseFilters($filterData, $model): array
+    {
+        if (!$filterData) {
+            return ['success' => true, 'parameters' => []];
+        }
+
+        try {
+            $filters = is_string($filterData) 
+                ? json_decode($filterData, true, 512, JSON_THROW_ON_ERROR) 
+                : $filterData;
+
+            if (!is_array($filters)) {
+                return [
+                    'success' => false,
+                    'message' => 'Le filtre doit être un objet JSON valide'
+                ];
+            }
+
+            return ['success' => true, 'parameters' => $this->buildFilterParameters($filters, $model)];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => "Erreur lors du traitement des filtres : {$e->getMessage()}"
+            ];
+        }
+    }
+
+    /**
+     * Construit les paramètres de filtre SQL
+     * 
+     * @param array $filters Filtres bruts
+     * @param object $model Instance du modèle
+     * @return array Paramètres SQL
+     */
+    private function buildFilterParameters(array $filters, $model): array
+    {
+        $parameters = [];
+        foreach ($filters as $field => $value) {
+            $parameter = $this->buildFilterParameter($field, $value, $model);
+            if ($parameter) {
+                $parameters[] = $parameter;
+            }
+        }
+        return $parameters;
+    }
+
+    /**
+     * Construit un paramètre de filtre SQL individuel
+     * 
+     * @param string $field Nom du champ
+     * @param mixed $value Valeur ou configuration du filtre
+     * @param object $model Instance du modèle
+     * @return array|null Paramètre SQL ou null si invalide
+     */
+    private function buildFilterParameter(string $field, mixed $value, $model): ?array
+    {
+        // Extraction du champ et de la relation si nécessaire
+        $fieldParts = $this->parseFieldName($field, $model);
+        if (!$fieldParts['success']) {
+            return null;
+        }
+
+        // Construction du paramètre de filtre
+        if (is_array($value) && isset($value['operator'], $value['value'])) {
+            if (!in_array($value['operator'], self::VALID_OPERATORS)) {
+                return null;
+            }
+            return [$fieldParts['field'], $value['operator'], $value['value']];
+        }
+
+        return [$fieldParts['field'], '=', $value];
+    }
+
+    /**
+     * Parse un nom de champ, gérant les champs simples et imbriqués
+     * 
+     * @param string $field Nom du champ
+     * @param object $model Instance du modèle
+     * @return array Informations sur le champ
+     */
+    private function parseFieldName(string $field, $model): array
+    {
+        // Champ imbriqué (ex: contact[phone])
+        if (preg_match('/^(\w+)\[(\w+)\]$/', $field, $matches)) {
+            return $this->parseNestedField($matches[1], $matches[2], $model);
+        }
+
+        // Champ simple
+        return $this->parseSimpleField($field, $model);
+    }
+
+    /**
+     * Parse un champ imbriqué (relation[field])
+     * 
+     * @param string $relation Nom de la relation
+     * @param string $field Nom du champ dans la relation
+     * @param object $model Instance du modèle
+     * @return array Informations sur le champ
+     */
+    private function parseNestedField(string $relation, string $field, $model): array
+    {
+        if (!isset($model::$SCHEMA[$relation]) || !isset($model::$SCHEMA[$relation]['type']) || $model::$SCHEMA[$relation]['type'] !== 'relation') {
+            return ['success' => false];
+        }
+
+        $relationSchema = $model::$SCHEMA[$relation]['schema'];
+        if (!isset($relationSchema[$field])) {
+            return ['success' => false];
+        }
+
+        return [
+            'success' => true,
+            'field' => $relationSchema[$field]['field']
+        ];
+    }
+
+    /**
+     * Parse un champ simple
+     * 
+     * @param string $field Nom du champ
+     * @param object $model Instance du modèle
+     * @return array Informations sur le champ
+     */
+    private function parseSimpleField(string $field, $model): array
+    {
+        if (!isset($model::$SCHEMA[$field])) {
+            return ['success' => false];
+        }
+
+        return [
+            'success' => true,
+            'field' => $model::$SCHEMA[$field]['field']
+        ];
+    }
+
+    /**
+     * Gère la récupération d'un élément
+     * 
+     * @param object $model Instance du modèle
+     * @param int $id Identifiant de l'élément
+     * @return array Réponse contenant l'élément
+     */
     private function handleGet($model, $id)
     {
         try {
             $result = $model->get((int)$id);
             
             if (!$result) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => "Ressource non trouvée"
-                ], 404);
+                ];
             }
 
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => '',
                 'result' => $result
-            ]);
+            ];
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
                 'message' => 'Erreur lors de la récupération: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
+    /**
+     * Gère la création d'un élément
+     * 
+     * @param object $model Instance du modèle
+     * @param array $data Données de l'élément
+     * @return array Réponse contenant l'élément créé
+     */
     private function handleCreate($model, $data)
     {
         try {
@@ -268,34 +517,42 @@ class ApiV2Controller extends Controller
             $result = $model->save();
 
             if (!$result) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => "Échec de la création"
-                ], 400);
+                ];
             }
 
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => "Ressource créée",
                 'result' => $result
-            ], 201);
+            ];
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
                 'message' => 'Erreur lors de la création: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
+    /**
+     * Gère la mise à jour d'un élément
+     * 
+     * @param object $model Instance du modèle
+     * @param int $id Identifiant de l'élément
+     * @param array $data Données de l'élément
+     * @return array Réponse contenant l'élément mis à jour
+     */
     private function handleUpdate($model, $id, $data)
     {
         try {
             $existingModel = $model->get((int)$id);
             if (!$existingModel) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => "Ressource non trouvée"
-                ], 404);
+                ];
             }
 
             // Mise à jour des champs
@@ -308,53 +565,53 @@ class ApiV2Controller extends Controller
             $result = $existingModel->save();
 
             if (!$result) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => "Échec de la mise à jour"
-                ], 400);
+                ];
             }
 
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => "Ressource mise à jour",
                 'result' => $result
-            ]);
+            ];
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
                 'message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
+    /**
+     * Gère la suppression d'un élément
+     * 
+     * @param object $model Instance du modèle
+     * @param int $id Identifiant de l'élément
+     * @return array Réponse de suppression
+     */
     private function handleDelete($model, $id)
     {
         try {
             $result = $model->delete((int)$id);
 
             if (!$result) {
-                return $this->jsonResponse([
+                return [
                     'success' => false,
                     'message' => "Échec de la suppression"
-                ], 400);
+                ];
             }
 
-            return $this->jsonResponse([
+            return [
                 'success' => true,
                 'message' => "Ressource supprimée"
-            ]);
+            ];
         } catch (\Exception $e) {
-            return $this->jsonResponse([
+            return [
                 'success' => false,
                 'message' => 'Erreur lors de la suppression: ' . $e->getMessage()
-            ], 500);
+            ];
         }
-    }
-
-    private function jsonResponse($data, $status = 200)
-    {
-        $this->_httpResponse->setStatusCode($status);
-        $this->_httpResponse->headers->set('Content-Type', 'application/json; charset=utf-8');
-        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

@@ -82,54 +82,13 @@ class Purchase extends Model
     }
 
     /**
-     * Vérifie si le purchase est en attente
-     *
-     * @return bool
+     * Récupère un achat par son leadId
+     * @param int $leadId
+     * @return \stdClass|null
      */
-    public function isPending(): bool
+    public function getByLeadId(int $leadId): ?\stdClass
     {
-        return $this->statut === 'pending';
-    }
-
-    /**
-     * Vérifie si le purchase est validé
-     *
-     * @return bool
-     */
-    public function isValid(): bool
-    {
-        return $this->statut === 'valid';
-    }
-
-    /**
-     * Vérifie si le purchase est rejeté
-     *
-     * @return bool
-     */
-    public function isRejected(): bool
-    {
-        return $this->statut === 'reject';
-    }
-
-    /**
-     * Valide le purchase
-     *
-     * @return bool
-     */
-    public function validate(): bool
-    {
-        $this->statut = 'valid';
-        return $this->save();
-    }
-
-    /**
-     * Rejette le purchase
-     *
-     * @return bool
-     */
-    public function reject(): bool
-    {
-        $this->statut = 'reject';
-        return $this->save();
+        $results = $this->getList(['leadid' => $leadId]);
+        return !empty($results) ? reset($results) : null;
     }
 }

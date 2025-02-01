@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Adapters;
+namespace Models\Adapters;
 
 interface LeadComponentInterface
 {

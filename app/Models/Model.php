@@ -232,10 +232,15 @@ abstract class Model
     }
 
     /**
-     * Récupère un enregistrement de la base de données.
+     * Récupère une liste d'enregistrements de la base de données.
      * 
-     * @param int $id L'identifiant de l'objet à récupérer.
-     * @return Model|bool L'instance du modèle hydraté. En cas de liste vide [].
+     * @param int|null $limit Limite le nombre de résultats
+     * @param array|null $sqlParameters Paramètres SQL pour filtrer les résultats
+     * @param array|null $jsonParameters Paramètres JSON pour filtrer les résultats
+     * @param string|null $groupBy Colonne pour le GROUP BY
+     * @param string|null $orderBy Colonne pour le ORDER BY
+     * @param string $direction Direction du tri (asc/desc)
+     * @return array<stdClass> Liste des résultats sous forme d'objets stdClass
      */
     public function getList($limit = null, array $sqlParameters = null, array $jsonParameters = null, $groupBy = null,$orderBy = null,$direction = 'asc')
     {         

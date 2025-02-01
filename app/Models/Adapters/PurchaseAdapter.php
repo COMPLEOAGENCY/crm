@@ -1,14 +1,32 @@
 <?php
 
-namespace App\Models\Adapters;
+namespace Models\Adapters;
 
 use Models\Lead as LegacyLead;
 use Models\Purchase;
 
 class PurchaseAdapter implements LeadComponentInterface
 {
+    public static array $SCHEMA = [
+        'exists' => ['field' => 'exists', 'type' => 'boolean'],
+        'data' => [
+            'type' => 'group',
+            'fields' => [
+                'purchaseId' => ['field' => 'purchaseid', 'type' => 'int'],
+                'timestamp' => ['field' => 'timestamp', 'type' => 'datetime'],
+                'userId' => ['field' => 'userid', 'type' => 'int'],
+                'sourceId' => ['field' => 'sourceid', 'type' => 'int'],
+                'campaignId' => ['field' => 'campaignid', 'type' => 'int'],
+                'targetId' => ['field' => 'targetid', 'type' => 'int'],
+                'price' => ['field' => 'price', 'type' => 'float'],
+                'status' => ['field' => 'statut', 'type' => 'string'],
+                'data' => ['field' => 'data', 'type' => 'json']
+            ]
+        ]
+    ];
+
     private LegacyLead $legacyLead;
-    private ?Purchase $purchase = null;
+    private ?\stdClass $purchase = null;
     
     public function __construct(LegacyLead $legacyLead)
     {
@@ -20,10 +38,7 @@ class PurchaseAdapter implements LeadComponentInterface
     {
         if ($this->legacyLead->leadId) {
             $purchase = new Purchase();
-            $result = $purchase->get($this->legacyLead->leadId);
-            if ($result) {
-                $this->purchase = $result;
-            }
+            $this->purchase = $purchase->getByLeadId($this->legacyLead->leadId);
         }
     }
     
@@ -36,70 +51,32 @@ class PurchaseAdapter implements LeadComponentInterface
             ];
         }
 
-        return [
-            'exists' => true,
-            'data' => [
-                'purchaseId' => $this->purchase->purchaseId,
-                'timestamp' => $this->purchase->timestamp,
-                'userId' => $this->purchase->userId,
-                'sourceId' => $this->purchase->sourceId,
-                'campaignId' => $this->purchase->campaignId,
-                'targetId' => $this->purchase->targetId,
-                'price' => $this->purchase->price,
-                'status' => $this->purchase->statut,
-                'data' => $this->purchase->data
-            ]
-        ];
+        $data = [];
+        foreach (self::$SCHEMA as $key => $config) {
+            if ($config['type'] === 'group') {
+                $data[$key] = [];
+                foreach ($config['fields'] as $fieldKey => $fieldConfig) {
+                    $fieldName = $fieldConfig['field'];
+                    $data[$key][$fieldKey] = $this->purchase->$fieldName ?? null;
+                }
+            } else {
+                $data[$key] = $key === 'exists' ? true : null;
+            }
+        }
+        
+        return $data;
     }
     
     public function setData(array $data): void
     {
-        if (!$this->purchase) {
-            $this->purchase = new Purchase();
-            $this->purchase->leadId = $this->legacyLead->leadId;
-        }
-        
-        if (isset($data['userId'])) $this->purchase->userId = $data['userId'];
-        if (isset($data['sourceId'])) $this->purchase->sourceId = $data['sourceId'];
-        if (isset($data['campaignId'])) $this->purchase->campaignId = $data['campaignId'];
-        if (isset($data['targetId'])) $this->purchase->targetId = $data['targetId'];
-        if (isset($data['price'])) $this->purchase->price = $data['price'];
-        if (isset($data['status'])) $this->purchase->statut = $data['status'];
-        if (isset($data['data'])) $this->purchase->data = $data['data'];
-        
-        // Mettre à jour le timestamp si c'est un nouveau purchase
-        if (!$this->purchase->purchaseId) {
-            $this->purchase->timestamp = time();
-        }
+        // Non implémenté car en lecture seule
     }
     
     public function save(): bool
     {
-        if (!$this->purchase) {
-            return false;
-        }
-        return $this->purchase->save();
+        // Non implémenté car en lecture seule
+        return true;
     }
     
-    /**
-     * Valide le purchase associé
-     */
-    public function validate(): bool
-    {
-        if (!$this->purchase) {
-            return false;
-        }
-        return $this->purchase->validate();
-    }
-    
-    /**
-     * Rejette le purchase associé
-     */
-    public function reject(): bool
-    {
-        if (!$this->purchase) {
-            return false;
-        }
-        return $this->purchase->reject();
-    }
+
 }

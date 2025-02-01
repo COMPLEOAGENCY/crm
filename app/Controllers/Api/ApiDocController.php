@@ -97,6 +97,11 @@ class ApiDocController extends Controller
 
     private function generateModelDoc($modelName)
     {
+        // Documentation spécifique pour LeadManager
+        if ($modelName === 'LeadManager') {
+            return $this->generateLeadManagerDoc();
+        }
+
         try {
             $modelClass = "\\Models\\" . $modelName;
             
@@ -274,6 +279,167 @@ class ApiDocController extends Controller
             'create' => "{$baseUrl}/{$modelPath}",
             'update' => "{$baseUrl}/{$modelPath}/{id}",
             'delete' => "{$baseUrl}/{$modelPath}/{id}"
+        ];
+    }
+
+    private function generateLeadManagerDoc()
+    {
+        return [
+            'name' => 'LeadManager',
+            'description' => 'Gestion des leads avec leurs relations (contact, project, purchase, sales, validationHistories)',
+            'schema' => [
+                'leadId' => [
+                    'type' => 'int',
+                    'description' => 'Identifiant unique du lead',
+                    'example' => 123
+                ],
+                'createdAt' => [
+                    'type' => 'datetime',
+                    'description' => 'Date de création',
+                    'example' => '2025-01-01 12:00:00'
+                ],
+                'updatedAt' => [
+                    'type' => 'datetime',
+                    'description' => 'Date de dernière modification',
+                    'example' => '2025-01-01 14:30:00'
+                ],
+                'contact' => [
+                    'type' => 'object',
+                    'description' => 'Informations de contact',
+                    'adapter' => 'ContactAdapter',
+                    'fields' => [
+                        'civility' => ['type' => 'string', 'example' => 'M.'],
+                        'firstName' => ['type' => 'string', 'example' => 'John'],
+                        'lastName' => ['type' => 'string', 'example' => 'Doe'],
+                        'email' => ['type' => 'string', 'example' => 'john.doe@example.com'],
+                        'phone' => ['type' => 'string', 'example' => '0612345678'],
+                        'phone2' => ['type' => 'string', 'example' => '0123456789']
+                    ]
+                ],
+                'project' => [
+                    'type' => 'object',
+                    'description' => 'Informations du projet',
+                    'adapter' => 'ProjectAdapter',
+                    'fields' => [
+                        'address' => [
+                            'type' => 'object',
+                            'fields' => [
+                                'address1' => ['type' => 'string', 'example' => '123 rue Example'],
+                                'address2' => ['type' => 'string', 'example' => 'Apt 4B'],
+                                'postalCode' => ['type' => 'string', 'example' => '75001'],
+                                'city' => ['type' => 'string', 'example' => 'Paris'],
+                                'country' => ['type' => 'string', 'example' => 'France']
+                            ]
+                        ]
+                    ]
+                ],
+                'purchase' => [
+                    'type' => 'object',
+                    'description' => 'Données d\'achat',
+                    'adapter' => 'PurchaseAdapter',
+                    'fields' => [
+                        'exists' => ['type' => 'boolean', 'example' => true],
+                        'data' => [
+                            'type' => 'object',
+                            'fields' => [
+                                'purchaseId' => ['type' => 'int', 'example' => 456],
+                                'timestamp' => ['type' => 'datetime', 'example' => '2025-01-01 15:00:00'],
+                                'price' => ['type' => 'float', 'example' => 1500.50]
+                            ]
+                        ]
+                    ]
+                ],
+                'sales' => [
+                    'type' => 'array',
+                    'description' => 'Données des ventes',
+                    'adapter' => 'SaleAdapter',
+                    'fields' => [
+                        'exists' => ['type' => 'boolean', 'example' => true],
+                        'data' => [
+                            'type' => 'object',
+                            'fields' => [
+                                'saleId' => ['type' => 'int', 'example' => 789],
+                                'timestamp' => ['type' => 'datetime', 'example' => '2025-01-02 10:00:00'],
+                                'price' => ['type' => 'float', 'example' => 2000.00]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'examples' => [
+                'filtrage' => [
+                    [
+                        'description' => 'Filtre simple sur l\'ID',
+                        'request' => 'GET /apiv2/leadmanager?filter={"leadId":123}',
+                        'explanation' => 'Récupère le lead avec l\'ID 123'
+                    ],
+                    [
+                        'description' => 'Filtre sur date avec opérateur',
+                        'request' => 'GET /apiv2/leadmanager?filter={"createdAt":{"operator":">","value":"2025-01-01"}}',
+                        'explanation' => 'Récupère les leads créés après le 1er janvier 2025'
+                    ],
+                    [
+                        'description' => 'Filtre sur champ imbriqué (contact)',
+                        'request' => 'GET /apiv2/leadmanager?filter={"contact[email]":{"operator":"LIKE","value":"%@gmail.com"}}',
+                        'explanation' => 'Récupère les leads dont l\'email du contact se termine par @gmail.com'
+                    ],
+                    [
+                        'description' => 'Filtre sur adresse',
+                        'request' => 'GET /apiv2/leadmanager?filter={"project[address][city]":"Paris"}',
+                        'explanation' => 'Récupère les leads situés à Paris'
+                    ],
+                    [
+                        'description' => 'Filtre sur prix d\'achat',
+                        'request' => 'GET /apiv2/leadmanager?filter={"purchase[data][price]":{"operator":">","value":1000}}',
+                        'explanation' => 'Récupère les leads avec un prix d\'achat supérieur à 1000'
+                    ],
+                    [
+                        'description' => 'Filtres multiples combinés',
+                        'request' => 'GET /apiv2/leadmanager?filter={"contact[firstName]":"John","project[address][city]":"Paris","sales[data][price]":{"operator":">","value":1000}}',
+                        'explanation' => 'Récupère les leads de John à Paris avec des ventes supérieures à 1000'
+                    ]
+                ],
+                'tri' => [
+                    [
+                        'description' => 'Tri simple sur ID',
+                        'request' => 'GET /apiv2/leadmanager?sort=leadId&order=desc',
+                        'explanation' => 'Trie les leads par ID décroissant'
+                    ],
+                    [
+                        'description' => 'Tri sur date de création',
+                        'request' => 'GET /apiv2/leadmanager?sort=createdAt&order=desc',
+                        'explanation' => 'Trie les leads du plus récent au plus ancien'
+                    ],
+                    [
+                        'description' => 'Tri sur nom de contact',
+                        'request' => 'GET /apiv2/leadmanager?sort=contact[lastName]&order=asc',
+                        'explanation' => 'Trie les leads par nom de contact alphabétique'
+                    ],
+                    [
+                        'description' => 'Tri sur ville',
+                        'request' => 'GET /apiv2/leadmanager?sort=project[address][city]&order=asc',
+                        'explanation' => 'Trie les leads par ville alphabétique'
+                    ]
+                ],
+                'pagination' => [
+                    [
+                        'description' => 'Pagination simple',
+                        'request' => 'GET /apiv2/leadmanager?page=1&limit=50',
+                        'explanation' => 'Récupère les 50 premiers leads'
+                    ],
+                    [
+                        'description' => 'Pagination avec tri et filtre',
+                        'request' => 'GET /apiv2/leadmanager?page=2&limit=25&sort=createdAt&order=desc&filter={"project[address][city]":"Paris"}',
+                        'explanation' => 'Récupère la deuxième page de 25 leads à Paris, triés par date de création décroissante'
+                    ]
+                ]
+            ],
+            'notes' => [
+                'Filtrage' => 'Tous les champs du schéma peuvent être utilisés pour le filtrage, y compris les champs imbriqués',
+                'Tri' => 'Le tri est possible sur tous les champs simples et certains champs imbriqués',
+                'Cache' => 'Le système invalide automatiquement le cache lors des modifications',
+                'Relations' => 'Toutes les relations sont chargées automatiquement'
+            ]
         ];
     }
 }

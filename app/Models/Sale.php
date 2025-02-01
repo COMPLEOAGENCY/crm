@@ -148,4 +148,15 @@ class Sale extends Model
     {
         parent::__construct($data);
     }
+
+    /**
+     * Récupère une vente par son leadId
+     * @param int $leadId
+     * @return \stdClass|null
+     */
+    public function getByLeadId(int $leadId): ?\stdClass
+    {
+        $results = $this->getList(['leadid' => $leadId]);
+        return !empty($results) ? reset($results) : null;
+    }
 }

@@ -1,11 +1,41 @@
 <?php
 
-namespace App\Models\Adapters;
+namespace Models\Adapters;
 
 use Models\Lead as LegacyLead;
 
 class ContactAdapter implements LeadComponentInterface
 {
+    public static array $SCHEMA = [
+        'leadId' => ['field' => 'leadId', 'type' => 'int'],
+        'civility' => ['field' => 'civ', 'type' => 'string'],
+        'firstName' => ['field' => 'first_name', 'type' => 'string'],
+        'lastName' => ['field' => 'last_name', 'type' => 'string'],
+        'email' => ['field' => 'email', 'type' => 'string'],
+        'phone' => ['field' => 'phone', 'type' => 'string'],
+        'phone2' => ['field' => 'phone2', 'type' => 'string'],
+        'validations' => [
+            'type' => 'group',
+            'fields' => [
+                'email' => ['field' => 'email_val', 'type' => 'boolean'],
+                'phone' => ['field' => 'phone_val', 'type' => 'boolean'],
+                'phone2' => ['field' => 'phone2_val', 'type' => 'boolean']
+            ]
+        ],
+        'marketing' => [
+            'type' => 'group',
+            'fields' => [
+                'utm_source' => ['field' => 'utm_source', 'type' => 'string'],
+                'utm_medium' => ['field' => 'utm_medium', 'type' => 'string'],
+                'utm_campaign' => ['field' => 'utm_campaign', 'type' => 'string'],
+                'utm_content' => ['field' => 'utm_content', 'type' => 'string'],
+                'utm_term' => ['field' => 'utm_term', 'type' => 'string'],
+                'url' => ['field' => 'url', 'type' => 'string'],
+                'referer' => ['field' => 'referer', 'type' => 'string']
+            ]
+        ]
+    ];
+
     private LegacyLead $legacyLead;
     
     public function __construct(LegacyLead $legacyLead)
@@ -15,28 +45,22 @@ class ContactAdapter implements LeadComponentInterface
     
     public function getData(): array
     {
-        return [
-            'civility' => $this->legacyLead->civ,
-            'firstName' => $this->legacyLead->first_name,
-            'lastName' => $this->legacyLead->last_name,
-            'email' => $this->legacyLead->email,
-            'phone' => $this->legacyLead->phone,
-            'phone2' => $this->legacyLead->phone2,
-            'validations' => [
-                'email' => $this->legacyLead->email_val,
-                'phone' => $this->legacyLead->phone_val,
-                'phone2' => $this->legacyLead->phone2_val,
-            ],
-            'marketing' => [
-                'utm_source' => $this->legacyLead->utm_source,
-                'utm_medium' => $this->legacyLead->utm_medium,
-                'utm_campaign' => $this->legacyLead->utm_campaign,
-                'utm_content' => $this->legacyLead->utm_content,
-                'utm_term' => $this->legacyLead->utm_term,
-                'url' => $this->legacyLead->url,
-                'referer' => $this->legacyLead->referer,
-            ]
-        ];
+        $data = [];
+        
+        foreach (self::$SCHEMA as $key => $config) {
+            if ($config['type'] === 'group') {
+                $data[$key] = [];
+                foreach ($config['fields'] as $fieldKey => $fieldConfig) {
+                    $fieldName = $fieldConfig['field'];
+                    $data[$key][$fieldKey] = $this->legacyLead->$fieldName;
+                }
+            } else {
+                $fieldName = $config['field'];
+                $data[$key] = $this->legacyLead->$fieldName;
+            }
+        }
+        
+        return $data;
     }
     
     public function setData(array $data): void

@@ -246,6 +246,94 @@ GET /apiv2/administration?filter={"value":{"operator":"IS NOT","value":null}}</c
                             <small class="text-muted">Suppression d'un élément</small>
                         </div>
                     </div>
+
+                    @if($modelName === 'LeadManager' && isset($modelInfo['examples']))
+                        <h3>Exemples d'utilisation</h3>
+                        
+                        <!-- Exemples de filtrage -->
+                        <div class="mb-4">
+                            <h4>Filtrage</h4>
+                            <div id="filterExamples" class="accordion">
+                                @foreach($modelInfo['examples']['filtrage'] as $index => $example)
+                                    <div class="card">
+                                        <div class="card-header" id="filter-heading-{{ $index }}">
+                                            <h5 class="mb-0">
+                                                <button class="btn btn-link" data-toggle="collapse" data-target="#filter-{{ $index }}" aria-expanded="{{ $index === 0 ? 'true' : 'false' }}" aria-controls="filter-{{ $index }}">
+                                                    {{ $example['description'] }}
+                                                </button>
+                                            </h5>
+                                        </div>
+                                        <div id="filter-{{ $index }}" class="collapse {{ $index === 0 ? 'show' : '' }}" aria-labelledby="filter-heading-{{ $index }}" data-parent="#filterExamples">
+                                            <div class="card-body">
+                                                <p>{{ $example['explanation'] }}</p>
+                                                <pre class="bg-light p-3 rounded"><code>{{ $example['request'] }}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Exemples de tri -->
+                        <div class="mb-4">
+                            <h4>Tri</h4>
+                            <div id="sortExamples" class="accordion">
+                                @foreach($modelInfo['examples']['tri'] as $index => $example)
+                                    <div class="card">
+                                        <div class="card-header" id="sort-heading-{{ $index }}">
+                                            <h5 class="mb-0">
+                                                <button class="btn btn-link" data-toggle="collapse" data-target="#sort-{{ $index }}" aria-expanded="{{ $index === 0 ? 'true' : 'false' }}" aria-controls="sort-{{ $index }}">
+                                                    {{ $example['description'] }}
+                                                </button>
+                                            </h5>
+                                        </div>
+                                        <div id="sort-{{ $index }}" class="collapse {{ $index === 0 ? 'show' : '' }}" aria-labelledby="sort-heading-{{ $index }}" data-parent="#sortExamples">
+                                            <div class="card-body">
+                                                <p>{{ $example['explanation'] }}</p>
+                                                <pre class="bg-light p-3 rounded"><code>{{ $example['request'] }}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Exemples de pagination -->
+                        <div class="mb-4">
+                            <h4>Pagination</h4>
+                            <div id="paginationExamples" class="accordion">
+                                @foreach($modelInfo['examples']['pagination'] as $index => $example)
+                                    <div class="card">
+                                        <div class="card-header" id="pagination-heading-{{ $index }}">
+                                            <h5 class="mb-0">
+                                                <button class="btn btn-link" data-toggle="collapse" data-target="#pagination-{{ $index }}" aria-expanded="{{ $index === 0 ? 'true' : 'false' }}" aria-controls="pagination-{{ $index }}">
+                                                    {{ $example['description'] }}
+                                                </button>
+                                            </h5>
+                                        </div>
+                                        <div id="pagination-{{ $index }}" class="collapse {{ $index === 0 ? 'show' : '' }}" aria-labelledby="pagination-heading-{{ $index }}" data-parent="#paginationExamples">
+                                            <div class="card-body">
+                                                <p>{{ $example['explanation'] }}</p>
+                                                <pre class="bg-light p-3 rounded"><code>{{ $example['request'] }}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        @if(isset($modelInfo['notes']))
+                            <h3>Notes importantes</h3>
+                            <div class="list-group">
+                                @foreach($modelInfo['notes'] as $title => $note)
+                                    <div class="list-group-item">
+                                        <strong>{{ $title }}</strong>: {{ $note }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endif
                 </div>
             </div>
             @endforeach

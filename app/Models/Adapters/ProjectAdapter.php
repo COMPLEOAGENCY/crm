@@ -1,11 +1,34 @@
 <?php
 
-namespace App\Models\Adapters;
+namespace Models\Adapters;
 
 use Models\Lead as LegacyLead;
 
 class ProjectAdapter implements LeadComponentInterface
 {
+    public static array $SCHEMA = [
+        'address' => [
+            'type' => 'group',
+            'fields' => [
+                'address1' => ['field' => 'address1', 'type' => 'string'],
+                'address2' => ['field' => 'address2', 'type' => 'string'],
+                'postalCode' => ['field' => 'cp', 'type' => 'string'],
+                'city' => ['field' => 'city', 'type' => 'string'],
+                'country' => ['field' => 'country', 'type' => 'string'],
+                'state' => ['field' => 'state', 'type' => 'string']
+            ]
+        ],
+        'geolocation' => [
+            'type' => 'group',
+            'fields' => [
+                'subregion' => ['field' => '_subregion', 'type' => 'string'],
+                'region' => ['field' => '_region', 'type' => 'string'],
+                'countryName' => ['field' => '_countryname', 'type' => 'string']
+            ]
+        ],
+        'meta' => ['field' => 'meta', 'type' => 'json']
+    ];
+
     private LegacyLead $legacyLead;
     
     public function __construct(LegacyLead $legacyLead)
@@ -15,22 +38,24 @@ class ProjectAdapter implements LeadComponentInterface
     
     public function getData(): array
     {
-        return [
-            'address' => [
-                'address1' => $this->legacyLead->address1,
-                'address2' => $this->legacyLead->address2,
-                'postalCode' => $this->legacyLead->cp,
-                'city' => $this->legacyLead->city,
-                'country' => $this->legacyLead->country,
-                'state' => $this->legacyLead->state,
-            ],
-            'geolocation' => [
-                'subregion' => $this->legacyLead->_subregion,
-                'region' => $this->legacyLead->_region,
-                'countryName' => $this->legacyLead->_countryname,
-            ],
-            'meta' => $this->legacyLead->getMeta()
-        ];
+        $data = [];
+        
+        foreach (self::$SCHEMA as $key => $config) {
+            if ($config['type'] === 'group') {
+                $data[$key] = [];
+                foreach ($config['fields'] as $fieldKey => $fieldConfig) {
+                    $fieldName = $fieldConfig['field'];
+                    $data[$key][$fieldKey] = $this->legacyLead->$fieldName;
+                }
+            } elseif ($config['type'] === 'json') {
+                $data[$key] = $this->legacyLead->getMeta();
+            } else {
+                $fieldName = $config['field'];
+                $data[$key] = $this->legacyLead->$fieldName;
+            }
+        }
+        
+        return $data;
     }
     
     public function setData(array $data): void
