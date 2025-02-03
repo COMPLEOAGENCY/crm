@@ -14,21 +14,43 @@ use Framework\DebugBar;
 /**
  * Class CacheObserver
  * 
- * Observe les changements sur les modèles pour gérer l'invalidation du cache.
- * Implémente une stratégie de cache spécifique pour chaque type de modèle.
+ * Implémente le pattern Observer pour gérer l'invalidation intelligente du cache.
+ * Cette classe est responsable de :
+ * 1. Observer les changements (create/update/delete) sur tous les modèles
+ * 2. Invalider les caches appropriés selon le type de modèle
+ * 3. Recalculer les données dépendantes (ex: soldes utilisateurs)
+ *
+ * Configuration :
+ * - LOG_CACHE_OBSERVER = true pour activer les logs détaillés
+ * - Utilise la DebugBar pour tracer les invalidations
  *
  * @package Framework\Observers
+ * @see \Framework\CacheManager Pour la gestion du cache
+ * @see \Services\BalanceService Pour le recalcul des soldes
+ * @see \Traits\ModelObservable Pour l'implémentation du pattern Observer
  */
 class CacheObserver 
 {
-    /** @var CacheManager Instance du gestionnaire de cache */
+    /** 
+     * @var CacheManager Instance du gestionnaire de cache
+     * @access private 
+     */
     private $cacheManager;
 
-    /** @var BalanceService Service de gestion des soldes */
+    /** 
+     * @var BalanceService Service de gestion des soldes utilisateurs
+     * @access private 
+     */
     private $balanceService;
 
     /**
-     * Initialise l'observateur de cache
+     * Constructeur de l'observateur de cache
+     * 
+     * Initialise les services nécessaires :
+     * - CacheManager pour la gestion du cache
+     * - BalanceService pour le recalcul des soldes
+     *
+     * @throws \RuntimeException Si l'initialisation des services échoue
      */
     public function __construct()
     {
@@ -45,8 +67,12 @@ class CacheObserver
     /**
      * Gère la création d'un nouveau modèle
      *
+     * Déclenche l'invalidation du cache appropriée selon le type de modèle.
+     * Pour les modèles User/Sale/Invoice, recalcule également les soldes impactés.
+     *
      * @param Model $model Le modèle qui vient d'être créé
      * @return void
+     * @throws \Exception En cas d'erreur lors de l'invalidation
      */
     public function created(Model $model): void 
     {
@@ -60,8 +86,14 @@ class CacheObserver
     /**
      * Gère la mise à jour d'un modèle existant
      *
+     * Invalide les caches impactés et recalcule les données dépendantes.
+     * Le comportement spécifique dépend du type de modèle :
+     * - User : Invalide 'UserList' et 'balance_user_[id]'
+     * - Sale/Invoice : Invalide 'balance_user_[id]' et recalcule le solde
+     *
      * @param Model $model Le modèle qui vient d'être mis à jour
      * @return void
+     * @throws \Exception En cas d'erreur lors de l'invalidation
      */
     public function updated(Model $model): void 
     {
@@ -75,8 +107,12 @@ class CacheObserver
     /**
      * Gère la suppression d'un modèle
      *
+     * Invalide tous les caches liés au modèle supprimé et met à jour
+     * les données dépendantes si nécessaire.
+     *
      * @param Model $model Le modèle qui vient d'être supprimé
      * @return void
+     * @throws \Exception En cas d'erreur lors de l'invalidation
      */
     public function deleted(Model $model): void 
     {
@@ -88,11 +124,18 @@ class CacheObserver
     }
 
     /**
-     * Gère les changements de modèle en fonction de leur type
+     * Gère les changements de modèle selon leur type
+     *
+     * Implémente la logique spécifique d'invalidation pour chaque type de modèle :
+     * - User : Gestion des listes et soldes utilisateurs
+     * - Sale/Invoice : Gestion des soldes et transactions
+     * - Autres : Invalidation simple des listes
      *
      * @param Model $model Le modèle modifié
-     * @param string $action Type d'action effectuée
+     * @param string $action Type d'action ('created', 'updated', 'deleted')
      * @return void
+     * @access private
+     * @throws \RuntimeException Si le type de modèle n'est pas géré
      */
     private function handleModelChange(Model $model, string $action): void 
     {

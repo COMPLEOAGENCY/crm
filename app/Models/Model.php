@@ -6,41 +6,59 @@ use Traits\ModelObservable;
 
 use stdClass;
 /**
- * Classe Model
+ * Classe abstraite Model
  * 
  * Cette classe représente le modèle de base pour interagir avec les tables de la base de données.
- * Elle définit la structure commune et les fonctionnalités de base pour les modèles dérivés.
+ * Elle implémente un système de cache en trois parties :
+ * 1. Gestion basique du cache (updateAll/getAll)
+ * 2. Intégration avec CacheObserver pour l'invalidation intelligente
+ * 3. Utilisation du trait ModelObservable pour la notification des changements
+ *
+ * @package Models
+ * @abstract
+ * @uses \Traits\ModelObservable
+ * @uses \Framework\CacheManager
  */
-
-use Framework\CacheManager;
-
 abstract class Model
 {
-
     use ModelObservable;
+
     /**
-     * @var string Le nom de la table dans la base de données.
+     * @var string Le nom de la table dans la base de données
+     * @static
      */
     public static $TABLE_NAME;
     /**
-     * @var string L'index principal de la table.
+     * @var string L'index principal de la table (clé primaire)
+     * @static
      */
     public static $TABLE_INDEX;
 
     /**
-     * @var string L'index de l'objet dans la table.
+     * @var string L'index de l'objet dans la table (peut être différent de TABLE_INDEX)
+     * @static
      */
     public static $OBJ_INDEX;
 
     /**
-     * @var array La structure du schéma de la table.
+     * @var array Le schéma de la table définissant la structure et les types des champs
+     * Format attendu:
+     * [
+     *    'property_name' => [
+     *        'field' => 'db_field_name',
+     *        'type' => 'type_php',
+     *        'default' => 'valeur_par_defaut'
+     *    ]
+     * ]
+     * @static
      */
     public static $SCHEMA;
 
     /**
-     * Retourne le schéma du modèle.
+     * Retourne le schéma du modèle
      * 
-     * @return array Le schéma du modèle
+     * @static
+     * @return array Le schéma complet du modèle
      */
     public static function getSchema(): array
     {
@@ -48,11 +66,13 @@ abstract class Model
     }
 
     /**
-     * Constructeur de la classe Model.
+     * Constructeur du modèle
      * 
-     * Initialise une nouvelle instance du modèle en configurant le schéma.
+     * Initialise une nouvelle instance en utilisant le schéma défini.
+     * Les propriétés sont configurées selon les valeurs par défaut du schéma
+     * ou les données fournies.
      * 
-     * @param array $data Les données initiales pour l'instance du modèle.
+     * @param array $data Données initiales pour hydrater le modèle
      */
     public function __construct(array $data = [])
     {
@@ -60,9 +80,16 @@ abstract class Model
     }
 
     /**
-     * Initialise le schéma du modèle.
+     * Initialise les propriétés du modèle selon le schéma
      * 
-     * Cette méthode configure les propriétés du modèle en fonction du schéma défini.
+     * Pour chaque propriété définie dans le schéma :
+     * - Utilise la valeur fournie si elle existe
+     * - Sinon utilise la valeur par défaut du schéma
+     * - Applique la conversion de type si spécifiée
+     * 
+     * @param array $data Données pour initialiser les propriétés
+     * @return void
+     * @access private
      */
     private function initializeSchema($data): void
     {
@@ -82,11 +109,14 @@ abstract class Model
     }
 
     /**
-     * Hydrate l'instance du modèle avec les données fournies, en traitant le schéma.
+     * Hydrate l'instance avec les données fournies
      * 
-     * @param array $data Les données à utiliser pour hydrater le modèle.
-     * @param bool $strict Définit si les données doivent être strictement conformes au schéma.
-     * @return Model|stdClass L'instance du modèle hydraté, ou un objet stdClass si strict est true.
+     * Convertit et assigne les données selon le schéma défini.
+     * En mode strict, retourne un nouvel objet au lieu de modifier l'instance.
+     * 
+     * @param array $data Données à hydrater
+     * @param bool $strict Si true, retourne un nouvel objet au lieu de modifier l'instance
+     * @return Model|stdClass L'instance hydratée ou un nouvel objet en mode strict
      */
     public function hydrate(array $data = [], bool $strict = false)
     {
