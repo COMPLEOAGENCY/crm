@@ -113,11 +113,11 @@ class ApiDocController extends Controller
             $model = new $modelClass();
             
             // Récupérer les propriétés du modèle
-            if (!property_exists($modelClass, 'SCHEMA')) {
+            if (!method_exists($modelClass, 'getSchema')) {
                 return $this->getEmptyModelStructure($modelName);
             }
 
-            $schema = $modelClass::$SCHEMA;
+            $schema = $modelClass::getSchema();
             $table = $modelClass::$TABLE_NAME;
             $index = $modelClass::$TABLE_INDEX;
 

@@ -6,6 +6,7 @@ use Framework\HttpRequest;
 use Framework\HttpResponse;
 use Framework\CacheManager;
 use Models;
+use Classes\Logger;
 
 /**
  * Contrôleur pour l'API V2
@@ -334,6 +335,9 @@ class ApiV2Controller extends Controller
         }
 
         try {
+            // Log des données brutes
+            Logger::debug("Filtre brut", ['data' => $filterData]);
+            
             $filters = is_string($filterData) 
                 ? json_decode($filterData, true, 512, JSON_THROW_ON_ERROR) 
                 : $filterData;
@@ -345,9 +349,18 @@ class ApiV2Controller extends Controller
                 ];
             }
 
-            return ['success' => true, 'parameters' => $this->buildFilterParameters($filters, $model)];
+            // Log des filtres décodés
+            Logger::debug("Filtres décodés", ['filters' => $filters]);
+            
+            $result = ['success' => true, 'parameters' => $this->buildFilterParameters($filters, $model)];
+            
+            // Log du résultat final
+            Logger::debug("Paramètres de filtre générés", ['result' => $result]);
+            
+            return $result;
 
         } catch (\Exception $e) {
+            Logger::critical("Erreur parsing filtres", ['error' => $e->getMessage()], $e);
             return [
                 'success' => false,
                 'message' => "Erreur lors du traitement des filtres : {$e->getMessage()}"
@@ -384,21 +397,34 @@ class ApiV2Controller extends Controller
      */
     private function buildFilterParameter(string $field, mixed $value, $model): ?array
     {
+        // Log des paramètres d'entrée
+        Logger::debug("Construction filtre", [
+            'field' => $field,
+            'value' => $value
+        ]);
+        
         // Extraction du champ et de la relation si nécessaire
         $fieldParts = $this->parseFieldName($field, $model);
+        Logger::debug("Field parts", ['parts' => $fieldParts]);
+        
         if (!$fieldParts['success']) {
+            Logger::debug("Échec parsing du champ", ['field' => $field]);
             return null;
         }
 
         // Construction du paramètre de filtre
         if (is_array($value) && isset($value['operator'], $value['value'])) {
             if (!in_array($value['operator'], self::VALID_OPERATORS)) {
+                Logger::debug("Opérateur invalide", ['operator' => $value['operator']]);
                 return null;
             }
-            return [$fieldParts['field'], $value['operator'], $value['value']];
+            $result = [$fieldParts['field'], $value['operator'], $value['value']];
+        } else {
+            $result = [$fieldParts['field'], '=', $value];
         }
-
-        return [$fieldParts['field'], '=', $value];
+        
+        Logger::debug("Paramètre de filtre construit", ['result' => $result]);
+        return $result;
     }
 
     /**
@@ -422,26 +448,108 @@ class ApiV2Controller extends Controller
     /**
      * Parse un champ imbriqué (relation[field])
      * 
-     * @param string $relation Nom de la relation
-     * @param string $field Nom du champ dans la relation
+     * @param string $relation Nom de la relation (ex: contact)
+     * @param string $field Nom du champ dans la relation (ex: phone)
      * @param object $model Instance du modèle
      * @return array Informations sur le champ
      */
     private function parseNestedField(string $relation, string $field, $model): array
     {
-        if (!isset($model::$SCHEMA[$relation]) || !isset($model::$SCHEMA[$relation]['type']) || $model::$SCHEMA[$relation]['type'] !== 'relation') {
+        Logger::debug("parseNestedField - Entrée", [
+            'relation' => $relation,
+            'field' => $field,
+            'model_class' => get_class($model)
+        ]);
+
+        // Récupérer l'adaptateur correspondant à la relation
+        $adapterClass = "\\Models\\Adapters\\" . ucfirst($relation) . "Adapter";
+        
+        if (!class_exists($adapterClass)) {
+            Logger::debug("parseNestedField - Adaptateur non trouvé", [
+                'adapter' => $adapterClass
+            ]);
             return ['success' => false];
         }
 
-        $relationSchema = $model::$SCHEMA[$relation]['schema'];
-        if (!isset($relationSchema[$field])) {
-            return ['success' => false];
+        Logger::debug("parseNestedField - Schéma de l'adaptateur", [
+            'adapter' => $adapterClass,
+            'schema' => $adapterClass::getSchema()
+        ]);
+
+        // Vérifier d'abord dans data.fields si présent
+        if (isset($adapterClass::getSchema()['data']) && 
+            isset($adapterClass::getSchema()['data']['type']) && 
+            $adapterClass::getSchema()['data']['type'] === 'collection' &&
+            isset($adapterClass::getSchema()['data']['fields'][$field])) {
+            
+            $fieldConfig = $adapterClass::getSchema()['data']['fields'][$field];
+            Logger::debug("parseNestedField - Champ trouvé dans data.fields", [
+                'field' => $field,
+                'config' => $fieldConfig
+            ]);
+            return [
+                'success' => true,
+                'field' => $fieldConfig['table'] . '.' . $fieldConfig['field']
+            ];
         }
 
-        return [
-            'success' => true,
-            'field' => $relationSchema[$field]['field']
-        ];
+        // Chercher le champ dans le schéma de l'adaptateur
+        if (isset($adapterClass::getSchema()[$field])) {
+            $fieldConfig = $adapterClass::getSchema()[$field];
+            Logger::debug("parseNestedField - Champ trouvé directement", [
+                'field' => $field,
+                'config' => $fieldConfig
+            ]);
+            return [
+                'success' => true,
+                'field' => $fieldConfig['table'] . '.' . $fieldConfig['field']
+            ];
+        }
+
+        // Chercher dans les groupes au niveau racine et dans data.fields
+        $searchInGroups = function($schema) use ($field) {
+            foreach ($schema as $group) {
+                if (isset($group['type']) && $group['type'] === 'group' && isset($group['fields'][$field])) {
+                    return $group['fields'][$field];
+                }
+            }
+            return null;
+        };
+
+        // Chercher dans les groupes au niveau racine
+        $fieldConfig = $searchInGroups($adapterClass::getSchema());
+        if ($fieldConfig) {
+            Logger::debug("parseNestedField - Champ trouvé dans un groupe racine", [
+                'field' => $field,
+                'config' => $fieldConfig
+            ]);
+            return [
+                'success' => true,
+                'field' => $fieldConfig['table'] . '.' . $fieldConfig['field']
+            ];
+        }
+
+        // Chercher dans les groupes de data.fields
+        if (isset($adapterClass::getSchema()['data']['fields'])) {
+            $fieldConfig = $searchInGroups($adapterClass::getSchema()['data']['fields']);
+            if ($fieldConfig) {
+                Logger::debug("parseNestedField - Champ trouvé dans un groupe de data.fields", [
+                    'field' => $field,
+                    'config' => $fieldConfig
+                ]);
+                return [
+                    'success' => true,
+                    'field' => $fieldConfig['table'] . '.' . $fieldConfig['field']
+                ];
+            }
+        }
+
+        Logger::debug("parseNestedField - Champ non trouvé", [
+            'field' => $field,
+            'available_fields' => array_keys($adapterClass::getSchema())
+        ]);
+        
+        return ['success' => false];
     }
 
     /**
@@ -453,13 +561,13 @@ class ApiV2Controller extends Controller
      */
     private function parseSimpleField(string $field, $model): array
     {
-        if (!isset($model::$SCHEMA[$field])) {
+        if (!isset($model::getSchema()[$field])) {
             return ['success' => false];
         }
 
         return [
             'success' => true,
-            'field' => $model::$SCHEMA[$field]['field']
+            'field' => $model::getSchema()[$field]['field']
         ];
     }
 

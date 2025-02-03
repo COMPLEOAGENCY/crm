@@ -2,91 +2,64 @@
 
 namespace Models\Adapters;
 
+use Models\Project;
 use Models\Lead as LegacyLead;
 
 class ProjectAdapter implements LeadComponentInterface
 {
-    public static array $SCHEMA = [
-        'address' => [
-            'type' => 'group',
-            'fields' => [
-                'address1' => ['field' => 'address1', 'type' => 'string'],
-                'address2' => ['field' => 'address2', 'type' => 'string'],
-                'postalCode' => ['field' => 'cp', 'type' => 'string'],
-                'city' => ['field' => 'city', 'type' => 'string'],
-                'country' => ['field' => 'country', 'type' => 'string'],
-                'state' => ['field' => 'state', 'type' => 'string']
-            ]
-        ],
-        'geolocation' => [
-            'type' => 'group',
-            'fields' => [
-                'subregion' => ['field' => '_subregion', 'type' => 'string'],
-                'region' => ['field' => '_region', 'type' => 'string'],
-                'countryName' => ['field' => '_countryname', 'type' => 'string']
-            ]
-        ],
-        'meta' => ['field' => 'meta', 'type' => 'json']
-    ];
+    private ?Project $project;
+    private ?LegacyLead $lead;
+    private array $relatedProjects = [];
 
-    private LegacyLead $legacyLead;
-    
-    public function __construct(LegacyLead $legacyLead)
+    public static function getSchema()
     {
-        $this->legacyLead = $legacyLead;
+        return Project::$SCHEMA;
     }
-    
-    public function getData(): array
+
+    public function __construct(?LegacyLead $lead = null)
     {
-        $data = [];
+        $this->lead = $lead;
+        $this->project = new Project();
         
-        foreach (self::$SCHEMA as $key => $config) {
-            if ($config['type'] === 'group') {
-                $data[$key] = [];
-                foreach ($config['fields'] as $fieldKey => $fieldConfig) {
-                    $fieldName = $fieldConfig['field'];
-                    $data[$key][$fieldKey] = $this->legacyLead->$fieldName;
-                }
-            } elseif ($config['type'] === 'json') {
-                $data[$key] = $this->legacyLead->getMeta();
-            } else {
-                $fieldName = $config['field'];
-                $data[$key] = $this->legacyLead->$fieldName;
+        if ($lead !== null && !empty($lead->leadId)) {
+            // Récupérer le projet principal par leadId
+            $this->project = $this->project->get($lead->leadId) ?: new Project();
+            
+            // Récupérer les projets liés par email
+            if ($lead->email) {
+                $this->relatedProjects = $this->project->getList(
+                    null, 
+                    ['email' => $lead->email],
+                    null,
+                    null,
+                    'timestamp',
+                    'desc'
+                );
             }
         }
+    }
+
+    public function getData()
+    {
+        if (!$this->project) {
+            return null;
+        }
+        
+        $data = $this->project;
+        $data->relatedProjects = $this->relatedProjects;
         
         return $data;
     }
-    
+
+    // Lecture seule pour la relation one-to-many
     public function setData(array $data): void
     {
-        // Adresse
-        if (isset($data['address'])) {
-            if (isset($data['address']['address1'])) $this->legacyLead->address1 = $data['address']['address1'];
-            if (isset($data['address']['address2'])) $this->legacyLead->address2 = $data['address']['address2'];
-            if (isset($data['address']['postalCode'])) $this->legacyLead->cp = $data['address']['postalCode'];
-            if (isset($data['address']['city'])) $this->legacyLead->city = $data['address']['city'];
-            if (isset($data['address']['country'])) $this->legacyLead->country = $data['address']['country'];
-            if (isset($data['address']['state'])) $this->legacyLead->state = $data['address']['state'];
-        }
-        
-        // Géolocalisation
-        if (isset($data['geolocation'])) {
-            if (isset($data['geolocation']['subregion'])) $this->legacyLead->_subregion = $data['geolocation']['subregion'];
-            if (isset($data['geolocation']['region'])) $this->legacyLead->_region = $data['geolocation']['region'];
-            if (isset($data['geolocation']['countryName'])) $this->legacyLead->_countryname = $data['geolocation']['countryName'];
-        }
-        
-        // Meta
-        if (isset($data['meta'])) {
-            foreach ($data['meta'] as $key => $value) {
-                $this->legacyLead->setMeta($key, $value);
-            }
-        }
+        // Ne pas implémenter pour la lecture seule
     }
-    
+
     public function save(): bool
     {
-        return $this->legacyLead->save();
+        // Ne pas implémenter pour la lecture seule
+        return false;
     }
 }

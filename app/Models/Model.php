@@ -38,6 +38,16 @@ abstract class Model
     public static $SCHEMA;
 
     /**
+     * Retourne le schéma du modèle.
+     * 
+     * @return array Le schéma du modèle
+     */
+    public static function getSchema(): array
+    {
+        return static::$SCHEMA;
+    }
+
+    /**
      * Constructeur de la classe Model.
      * 
      * Initialise une nouvelle instance du modèle en configurant le schéma.
