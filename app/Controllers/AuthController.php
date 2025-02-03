@@ -13,13 +13,45 @@ use Classes\Logger;
 use crm_user;
 use Services\Validation\ValidationMessageService;
 
+/**
+ * Contrôleur de gestion de l'authentification
+ * 
+ * Gère les processus d'authentification pour les utilisateurs CRM et standards.
+ * Implémente la logique de connexion, validation et redirection post-login.
+ *
+ * Fonctionnalités :
+ * - Authentification double (CRM/Standard)
+ * - Validation des données de connexion
+ * - Gestion des messages d'erreur
+ * - Redirection intelligente selon le rôle
+ * - Journalisation des tentatives
+ *
+ * @package Controllers
+ * @uses \Framework\Controller
+ * @uses \Models\User
+ * @uses \Models\CrmUser
+ * @uses \Services\Validation\ValidationMessageService
+ */
 class AuthController extends Controller
 {
+    /** @var ValidationMessageService Service de gestion des messages de validation */
     private $validationMessageService;
+    
+    /** @var User Modèle utilisateur standard */
     private $user;
+    
+    /** @var CrmUser Modèle utilisateur CRM */
     private $crmUser;
+    
+    /** @var SessionHandler Gestionnaire de session */
     private $session;
 
+    /**
+     * Initialise le contrôleur d'authentification
+     *
+     * @param HttpRequest $httpRequest Requête HTTP
+     * @param HttpResponse $httpResponse Réponse HTTP
+     */
     public function __construct(HttpRequest $httpRequest, HttpResponse $httpResponse)
     {
         parent::__construct($httpRequest, $httpResponse);
@@ -29,6 +61,14 @@ class AuthController extends Controller
         $this->session = SessionHandler::getInstance();
     }
 
+    /**
+     * Gère le processus de connexion
+     *
+     * Vérifie si l'utilisateur est déjà connecté, traite le formulaire
+     * de connexion ou affiche le formulaire selon le contexte.
+     *
+     * @return HttpResponse Vue de connexion ou redirection
+     */
     public function login()
     {
 
@@ -53,6 +93,20 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Traite la soumission du formulaire de connexion
+     *
+     * Processus :
+     * 1. Valide les champs requis
+     * 2. Tente l'authentification CRM
+     * 3. Si échec, tente l'authentification standard
+     * 4. Gère les erreurs et journalise les tentatives
+     *
+     * @param array $params Paramètres du formulaire
+     * @return HttpResponse Redirection ou vue avec messages d'erreur
+     * @access private
+     * @throws \Exception En cas d'erreur système
+     */
     private function processLogin(array $params): HttpResponse
     {
         try {
@@ -97,6 +151,14 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Tente l'authentification d'un utilisateur CRM
+     *
+     * @param string $email Email de l'utilisateur
+     * @param string $password Mot de passe en clair
+     * @return CrmUser|null L'utilisateur authentifié ou null
+     * @access private
+     */
     private function authenticateCrmUser(string $email, string $password)
     {
         $users = $this->crmUser->getList(1, [
@@ -109,6 +171,14 @@ class AuthController extends Controller
         return !empty($users) ? $users[0] : null;
     }
 
+    /**
+     * Tente l'authentification d'un utilisateur standard
+     *
+     * @param string $email Email de l'utilisateur
+     * @param string $password Mot de passe en clair
+     * @return User|null L'utilisateur authentifié ou null
+     * @access private
+     */
     private function authenticateUser(string $email, string $password)
     {
         $users = $this->user->getList(1, [
@@ -120,6 +190,17 @@ class AuthController extends Controller
         return !empty($users) ? $users[0] : null;
     }
 
+    /**
+     * Gère la connexion réussie d'un utilisateur CRM
+     *
+     * Met à jour la date de dernière connexion, crée la session et redirige
+     * l'utilisateur vers la page appropriée.
+     *
+     * @param CrmUser $crmUser Utilisateur CRM authentifié
+     * @param array $params Paramètres du formulaire
+     * @return HttpResponse Redirection
+     * @access private
+     */
     private function handleSuccessfulCrmLogin($crmUser, array $params): HttpResponse
     {
         // Mise à jour date dernière connexion
@@ -154,6 +235,17 @@ class AuthController extends Controller
         
     }
 
+    /**
+     * Gère la connexion réussie d'un utilisateur standard
+     *
+     * Met à jour la date de dernière connexion, crée la session et redirige
+     * l'utilisateur vers la page appropriée.
+     *
+     * @param User $user Utilisateur standard authentifié
+     * @param array $params Paramètres du formulaire
+     * @return HttpResponse Redirection
+     * @access private
+     */
     private function handleSuccessfulUserLogin($user, array $params): HttpResponse
     {
         // Mise à jour date dernière connexion
@@ -185,10 +277,13 @@ class AuthController extends Controller
         // \Classes\redirect($this->getDefaultRedirect($user->type));
     }
 
-
-    
-
-
+    /**
+     * Détermine la redirection par défaut en fonction du type d'utilisateur
+     *
+     * @param string $userType Type d'utilisateur
+     * @return string URL de redirection
+     * @access private
+     */
     private function getDefaultRedirect(string $userType): string
     {
         $redirectMap = [
@@ -201,11 +296,16 @@ class AuthController extends Controller
         return $redirectMap[$userType] ?? '/admin/';
     }
 
+    /**
+     * Gère la déconnexion de l'utilisateur
+     *
+     * Efface la session et redirige l'utilisateur vers la page de connexion.
+     *
+     * @return HttpResponse Redirection
+     */
     public function logout(): HttpResponse
     {
         $this->session->clearSession();
         \Classes\redirect('/loginuser/', []);
     }
-    
-    
 }

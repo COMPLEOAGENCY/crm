@@ -7,8 +7,41 @@ use Framework\HttpRequest;
 use Framework\HttpResponse;
 use Framework\DebugBar;
 
+/**
+ * Middleware de gestion des sessions
+ * 
+ * Gère la synchronisation entre les sessions PHP natives et le système de session
+ * du framework. Assure la cohérence des données de session à travers l'application.
+ *
+ * Fonctionnalités :
+ * - Démarrage/arrêt de session PHP
+ * - Synchronisation avec la session framework
+ * - Nettoyage de session via paramètre GET
+ * - Intégration DebugBar
+ * - Ajout de l'ID de session dans les headers
+ *
+ * @package Middlewares
+ * @uses \Framework\Middleware
+ * @uses \Framework\HttpRequest
+ * @uses \Framework\HttpResponse
+ * @uses \Framework\DebugBar
+ */
 class SessionMiddleware extends Middleware
 {
+    /**
+     * Gère la requête HTTP pour la synchronisation des sessions
+     *
+     * Processus :
+     * 1. Gère le paramètre 'clearsession'
+     * 2. Démarre/Ferme la session PHP
+     * 3. Synchronise avec la session framework
+     * 4. Ajoute l'ID de session aux headers
+     *
+     * @param HttpRequest $httpRequest Requête HTTP entrante
+     * @param HttpResponse $httpResponse Réponse HTTP
+     * @return HttpResponse Réponse HTTP modifiée
+     * @throws \Exception Si la session framework ne peut pas être démarrée
+     */
     public function handle(HttpRequest $httpRequest, HttpResponse $httpResponse): HttpResponse
     {
         // Vérifier et gérer la suppression de la session si 'clearsession' est défini
@@ -58,7 +91,16 @@ class SessionMiddleware extends Middleware
     }
 
     /**
-     * Synchronise les données de $_SESSION vers la session du framework.
+     * Synchronise les données entre la session PHP et la session framework
+     *
+     * Transfère toutes les données de $_SESSION vers la session framework
+     * si elles n'existent pas déjà, puis persiste les modifications.
+     *
+     * @param array $oldSessionData Données de la session PHP
+     * @param \Framework\SessionHandler $session Instance de la session framework
+     * @return void
+     * @access private
+     * @throws \RuntimeException En cas d'erreur de synchronisation
      */
     private function syncSessionData(array $oldSessionData, $session): void
     {

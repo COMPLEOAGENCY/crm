@@ -6,11 +6,41 @@ use Framework\HttpRequest;
 use Framework\HttpResponse;
 use Services\UserService;
 
-
+/**
+ * Contrôleur de gestion de l'administration
+ * 
+ * Gère les fonctionnalités d'administration du CRM, notamment la gestion
+ * des utilisateurs (création, modification, suppression, synchronisation).
+ *
+ * Fonctionnalités :
+ * - Liste des utilisateurs avec filtres
+ * - Création/Modification d'utilisateurs
+ * - Synchronisation avec les utilisateurs CRM
+ * - Suppression d'utilisateurs
+ * - Gestion des soldes et transactions
+ *
+ * @package Controllers
+ * @uses \Framework\Controller
+ * @uses \Services\UserService
+ * @uses \Services\BalanceService
+ * @uses \Services\Validation\UserValidationService
+ */
 class AdminController extends Controller
 {
+    /** @var UserService Service de gestion des utilisateurs */
     private $userService;
 
+    /**
+     * Initialise le contrôleur d'administration
+     *
+     * Configure les services nécessaires :
+     * - UserService pour la gestion des utilisateurs
+     * - BalanceService pour la gestion des soldes
+     * - Services de validation
+     *
+     * @param HttpRequest $httpRequest Requête HTTP
+     * @param HttpResponse $httpResponse Réponse HTTP
+     */
     public function __construct(HttpRequest $httpRequest, HttpResponse $httpResponse)
     {
         parent::__construct($httpRequest, $httpResponse);
@@ -29,6 +59,17 @@ class AdminController extends Controller
         );
     }
 
+    /**
+     * Affiche et gère la liste des utilisateurs
+     *
+     * Fonctionnalités :
+     * - Filtrage des utilisateurs
+     * - Actions groupées
+     * - Affichage des utilisateurs CRM associés
+     *
+     * @param array $params Paramètres de filtrage et d'action
+     * @return HttpResponse Vue avec la liste des utilisateurs
+     */
     public function userlist($params = [])
     {
         $params = $this->initializeParams($params);
@@ -51,6 +92,17 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * Gère l'ajout, la modification et la suppression d'utilisateurs
+     *
+     * Actions possibles :
+     * - valid : Sauvegarde de l'utilisateur
+     * - synchro : Synchronisation avec l'utilisateur CRM
+     * - delete : Suppression de l'utilisateur
+     *
+     * @param array $params Paramètres du formulaire
+     * @return HttpResponse Vue du formulaire ou redirection
+     */
     public function useradd($params = [])
     {
         if (isset($params['submit'])) {
@@ -78,6 +130,19 @@ class AdminController extends Controller
         return $this->renderUserAddForm($params);
     }
 
+    /**
+     * Affiche le formulaire d'ajout/modification d'utilisateur
+     *
+     * Charge les données nécessaires :
+     * - Liste des utilisateurs CRM
+     * - Détails de l'utilisateur si modification
+     * - Messages de validation
+     * - Services de validation
+     *
+     * @param array $params Paramètres du formulaire
+     * @return HttpResponse Vue du formulaire
+     * @access private
+     */
     private function renderUserAddForm($params = [])    
     {      
         $crmUserList = $this->userService->getAllCrmUsers(); 

@@ -7,9 +7,33 @@ use Framework\HttpResponse;
 use Framework\SessionHandler;
 use Classes\Logger;
 
-
+/**
+ * Middleware d'authentification et d'autorisation
+ * 
+ * Gère l'authentification des utilisateurs et contrôle l'accès aux différentes
+ * sections de l'application en fonction des rôles utilisateur.
+ *
+ * Fonctionnalités :
+ * 1. Gestion de la déconnexion
+ * 2. Redirection post-login
+ * 3. Protection des routes privées
+ * 4. Vérification des permissions par rôle
+ *
+ * @package Middlewares
+ * @uses \Framework\Middleware
+ * @uses \Framework\HttpRequest
+ * @uses \Framework\HttpResponse
+ * @uses \Framework\SessionHandler
+ */
 class AuthMiddleware extends Middleware
 {
+    /**
+     * Liste des chemins publics accessibles sans authentification
+     * 
+     * @var array<string>
+     * @access private
+     * @const
+     */
     private const PUBLIC_PATHS = [
         '/loginuser/',
         '/login.php',
@@ -17,6 +41,20 @@ class AuthMiddleware extends Middleware
         '/logout/'
     ];
 
+    /**
+     * Gère la requête HTTP et applique les règles d'authentification
+     *
+     * Processus :
+     * 1. Vérifie si une déconnexion est demandée
+     * 2. Gère la redirection post-login si authentifié
+     * 3. Protège les routes privées
+     * 4. Vérifie les permissions selon le rôle
+     *
+     * @param HttpRequest $httpRequest Requête HTTP entrante
+     * @param HttpResponse $httpResponse Réponse HTTP
+     * @return HttpResponse Réponse HTTP modifiée
+     * @throws \RuntimeException En cas d'erreur d'authentification
+     */
     public function handle(HttpRequest $httpRequest, HttpResponse $httpResponse): HttpResponse
     {
         try {
@@ -67,6 +105,20 @@ class AuthMiddleware extends Middleware
         }
     }
 
+    /**
+     * Vérifie les permissions d'accès selon le répertoire et le type d'utilisateur
+     *
+     * Mapping des accès :
+     * - admin : ADM
+     * - provider : AFF
+     * - client : USR
+     * - user : ADM, USR
+     *
+     * @param string $directory Répertoire demandé
+     * @param string $userType Type d'utilisateur
+     * @return bool True si l'accès est autorisé
+     * @access private
+     */
     private function checkAccess(string $directory, string $userType): bool
     {
         if (empty($directory) || empty($userType)) return false;
