@@ -12,15 +12,57 @@ use Services\Validation\UserValidationService;
 use Services\Validation\ValidationMessageService;
 use user as GlobalUser;
 
+/**
+ * Service de gestion des utilisateurs
+ * 
+ * Gère toutes les opérations liées aux utilisateurs :
+ * - CRUD utilisateurs standards et CRM
+ * - Synchronisation entre utilisateurs standards et CRM
+ * - Gestion des limites de crédit
+ * - Récupération des détails utilisateurs (soldes, ventes, etc.)
+ *
+ * Intègre :
+ * - Validation des données utilisateur
+ * - Gestion des messages de validation
+ * - Calcul des soldes via BalanceService
+ *
+ * @package Services
+ * @uses \Models\User
+ * @uses \Models\CrmUser
+ * @uses \Framework\SessionHandler
+ * @uses \Services\Validation\UserValidationService
+ * @uses \Services\BalanceService
+ */
 class UserService
 {
+    /** @var User Modèle utilisateur standard */
     public User $user;
+
+    /** @var CrmUser Modèle utilisateur CRM */
     public CrmUser $crmUser;
+
+    /** @var SessionHandler Gestionnaire de session */
     public SessionHandler $session;
+
+    /** @var UserValidationService Service de validation des données utilisateur */
     public UserValidationService $validationService;
+
+    /** @var ValidationMessageService Service de gestion des messages de validation */
     public ValidationMessageService $validationMessageService;
+
+    /** @var BalanceService Service de gestion des soldes */
     public BalanceService $balanceService;
 
+    /**
+     * Initialise le service utilisateur avec ses dépendances
+     *
+     * @param User $user Modèle utilisateur standard
+     * @param CrmUser $crmUser Modèle utilisateur CRM
+     * @param SessionHandler $session Gestionnaire de session
+     * @param UserValidationService $validationService Service de validation
+     * @param ValidationMessageService $validationMessageService Service de messages
+     * @param BalanceService $balanceService Service de gestion des soldes
+     */
     public function __construct(
         User $user,
         CrmUser $crmUser,
@@ -38,8 +80,11 @@ class UserService
     }
 
     /**
-     * @param int $userId
-     * @return User|bool|null
+     * Récupère un utilisateur par son ID
+     *
+     * @param int $userId ID de l'utilisateur
+     * @return User|bool|null L'utilisateur trouvé, false si erreur, null si non trouvé
+     * @throws \RuntimeException En cas d'erreur de récupération
      */
     public function getUserById(int $userId): User|bool|null
     {
@@ -50,6 +95,24 @@ class UserService
         }
     }
 
+    /**
+     * Récupère les détails complets d'un utilisateur
+     *
+     * Inclut :
+     * - Informations de base de l'utilisateur
+     * - Solde et détails financiers
+     * - Ventes récentes
+     * - Utilisateurs subordonnés
+     *
+     * @param int $userId ID de l'utilisateur
+     * @return array{
+     *     user: User,
+     *     balance: array,
+     *     recentSales: array,
+     *     subUsers: array
+     * } Détails de l'utilisateur
+     * @throws \RuntimeException En cas d'erreur de récupération
+     */
     public function getUserDetails(int $userId): array
     {
         $user = $this->getUserById($userId);
@@ -69,6 +132,15 @@ class UserService
         }
     }
 
+    /**
+     * Vérifie si un utilisateur a dépassé sa limite de crédit
+     *
+     * Compare le solde négatif avec la limite de crédit autorisée
+     * définie dans encours_max.
+     *
+     * @param int $userId ID de l'utilisateur
+     * @return bool True si la limite est dépassée
+     */
     public function hasExceededCreditLimit(int $userId): bool
     {
         $user = $this->getUserById($userId);
@@ -80,6 +152,15 @@ class UserService
         return -$soldeDetails['solde'] > $user->encours_max;
     }
 
+    /**
+     * Récupère tous les utilisateurs CRM
+     *
+     * Retourne un tableau indexé par crm_userId pour faciliter
+     * les recherches et associations.
+     *
+     * @return array<int,CrmUser> Liste des utilisateurs CRM
+     * @throws \RuntimeException En cas d'erreur de récupération
+     */
     public function getAllCrmUsers(): array
     {
         try {
@@ -89,6 +170,12 @@ class UserService
         }
     }
 
+    /**
+     * Récupère tous les utilisateurs standards
+     *
+     * @return array<User> Liste des utilisateurs standards
+     * @throws \RuntimeException En cas d'erreur de récupération
+     */
     public function getAllUsers(): array
     {
         try {
@@ -98,6 +185,19 @@ class UserService
         }
     }
 
+    /**
+     * Sauvegarde un utilisateur (création ou mise à jour)
+     *
+     * Processus :
+     * 1. Validation des données
+     * 2. Vérification des doublons email
+     * 3. Création/Mise à jour de l'utilisateur
+     * 4. Gestion des messages de validation
+     *
+     * @param array $userData Données de l'utilisateur
+     * @return bool True si la sauvegarde est réussie
+     * @throws \RuntimeException En cas d'erreur de sauvegarde
+     */
     public function saveUser(array $userData): bool
     {
         try {

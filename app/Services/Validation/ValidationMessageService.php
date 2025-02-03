@@ -4,11 +4,38 @@ namespace Services\Validation;
 use Framework\SessionHandler;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
+/**
+ * Service de gestion des messages de validation
+ * 
+ * Gère les messages de validation et d'erreur pour l'interface utilisateur.
+ * Intègre la gestion des messages flash via la session et le formatage
+ * des erreurs de validation Symfony.
+ *
+ * Fonctionnalités :
+ * - Messages de succès et d'erreur
+ * - Messages flash en session
+ * - Erreurs par champ de formulaire
+ * - Intégration avec les violations de contraintes Symfony
+ * - Génération de classes CSS et HTML pour l'affichage
+ *
+ * @package Services\Validation
+ * @uses \Framework\SessionHandler
+ * @uses \Symfony\Component\Validator\ConstraintViolationListInterface
+ */
 class ValidationMessageService
 {
+    /** @var SessionHandler Gestionnaire de session */
     private $session;
+
+    /** @var array<string,array> Erreurs par champ */
     private $errors = [];
     
+    /**
+     * Initialise le service de messages
+     * 
+     * Récupère l'instance du gestionnaire de session pour
+     * la gestion des messages flash.
+     */
     public function __construct()
     {
         $this->session = SessionHandler::getInstance();
@@ -16,6 +43,11 @@ class ValidationMessageService
 
     /**
      * Ajoute un message de succès
+     *
+     * Le message sera stocké en session et affiché à la prochaine requête.
+     *
+     * @param string $message Message à afficher
+     * @param array $details Détails additionnels (optionnel)
      */
     public function addSuccess(string $message, array $details = []): void
     {
@@ -23,7 +55,14 @@ class ValidationMessageService
     }
 
     /**
-     * Ajoute un message d'erreur générique
+     * Ajoute un message d'erreur
+     *
+     * Peut être lié à un champ spécifique du formulaire.
+     * Le message sera stocké en session et affiché à la prochaine requête.
+     *
+     * @param string $message Message d'erreur
+     * @param array $details Détails additionnels (optionnel)
+     * @param string|null $field Nom du champ en erreur (optionnel)
      */
     public function addError(string $message, array $details = [], ?string $field = null): void
     {
@@ -35,6 +74,11 @@ class ValidationMessageService
 
     /**
      * Ajoute les violations de contraintes Symfony
+     *
+     * Convertit les violations de contraintes en messages d'erreur
+     * et les associe aux champs correspondants.
+     *
+     * @param ConstraintViolationListInterface $violations Liste des violations
      */
     public function addViolations(ConstraintViolationListInterface $violations): void
     {
@@ -49,6 +93,10 @@ class ValidationMessageService
 
     /**
      * Ajoute une erreur pour un champ spécifique
+     *
+     * @param string $field Nom du champ
+     * @param string $message Message d'erreur
+     * @access private
      */
     private function addFieldError(string $field, string $message): void
     {
@@ -60,6 +108,9 @@ class ValidationMessageService
 
     /**
      * Vérifie si un champ a des erreurs
+     *
+     * @param string $field Nom du champ
+     * @return bool True si le champ a des erreurs
      */
     public function hasFieldError(string $field): bool
     {
@@ -68,6 +119,12 @@ class ValidationMessageService
 
     /**
      * Retourne la classe CSS pour les champs en erreur
+     *
+     * Retourne 'is-invalid' si le champ a des erreurs,
+     * une chaîne vide sinon.
+     *
+     * @param string $field Nom du champ
+     * @return string Classe CSS
      */
     public function getFieldClass(string $field): string
     {
@@ -76,6 +133,15 @@ class ValidationMessageService
 
     /**
      * Génère le HTML pour afficher les erreurs d'un champ
+     *
+     * Format du HTML généré :
+     * <div class="invalid-feedback d-block">
+     *     message1<br/>
+     *     message2<br/>
+     * </div>
+     *
+     * @param string $field Nom du champ
+     * @return string HTML des messages d'erreur
      */
     public function getErrorHTML(string $field): string
     {
@@ -94,6 +160,13 @@ class ValidationMessageService
 
     /**
      * Récupère tous les messages flash
+     *
+     * Retourne un tableau avec les types de messages :
+     * - error : Messages d'erreur
+     * - success : Messages de succès
+     * - warning : Messages d'avertissement
+     *
+     * @return array<string,array> Messages par type
      */
     public function getMessages(): array
     {
@@ -110,6 +183,8 @@ class ValidationMessageService
 
     /**
      * Vérifie s'il y a des erreurs
+     *
+     * @return bool True si il y a des erreurs
      */
     public function hasErrors(): bool
     {
@@ -118,6 +193,11 @@ class ValidationMessageService
 
     /**
      * Ajoute un message flash à la session
+     *
+     * @param string $type Type de message (error, success, etc.)
+     * @param string $message Message à afficher
+     * @param array $details Détails additionnels (optionnel)
+     * @access private
      */
     private function addFlashMessage(string $type, string $message, array $details = []): void
     {

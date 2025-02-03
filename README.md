@@ -1,419 +1,179 @@
-# Documentation Technique du CRM
-Version 1.0.0
+# CRM Compleo 🚀
 
-## Table des matières
-1. [Introduction](#introduction)
-2. [Architecture du système](#architecture-du-système)
-3. [Structure du projet](#structure-du-projet)
-4. [Base de données](#base-de-données)
-5. [Authentification et sécurité](#authentification-et-sécurité)
-6. [Gestion des utilisateurs](#gestion-des-utilisateurs)
-7. [Système de cache](#système-de-cache)
-8. [API et intégrations](#api-et-intégrations)
-9. [Interface utilisateur](#interface-utilisateur)
-10. [Performances et optimisation](#performances-et-optimisation)
-11. [Déploiement](#déploiement)
-12. [Maintenance](#maintenance)
-13. [Guide de contribution](#guide-de-contribution)
-14. [Dépannage](#dépannage)
+[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://php.net)
+[![Framework](https://img.shields.io/badge/Framework-Compleo-orange.svg)](https://github.com/COMPLEOAGENCY/Framework)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
 
-## Introduction
+> Une application CRM moderne et puissante construite avec le Framework Compleo
 
-### Vue d'ensemble
-Ce CRM est construit sur un framework PHP personnalisé utilisant une architecture MVC moderne. Il est conçu pour gérer les relations clients, le suivi des ventes, et l'administration des utilisateurs.
+## 📋 Présentation
 
-### Technologies principales
-- PHP 8.0+
-- MySQL/MariaDB
-- Bootstrap 4.5.3
-- jQuery 3.6.0
-- DataTables 1.13.6
+Le CRM Compleo est une solution complète de gestion de la relation client, développée avec le Framework Compleo. Cette application PHP moderne suit une architecture MVC (Modèle-Vue-Contrôleur) et intègre les meilleures pratiques de développement.
 
-### Prérequis
-- PHP >= 8.0
-- Extensions PHP: PDO, JSON, mbstring, OpenSSL
-- MySQL/MariaDB
-- Composer
-- Serveur web compatible (Apache/Nginx)
+Pour plus de détails sur le framework utilisé, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
-## Architecture du système
+### ✨ Caractéristiques Principales
 
-### Pattern MVC
-Le CRM suit strictement le pattern MVC avec quelques particularités :
+- ⚡️ Application PHP 8.1+
+- 🏗️ Architecture MVC
+- 👥 Gestion avancée des utilisateurs et des rôles
+- 🚄 Système de cache intégré
+- 🌍 Support multi-langues
+- 📚 API REST documentée
+- 💅 Interface utilisateur moderne
+- ✅ Système de validation robuste
+- 🔒 Gestion des sessions sécurisée
 
-```
-Request → Middleware → Controller → Service → Model → Database
-   ↑          ↓           ↓           ↓         ↓         ↓
-   └──────────────────── Response ────────────────────────┘
-```
+### 🛠️ Technologies Clés
 
-### Composants clés
+- **PHP 8.1+** - Langage de base
+- **Framework Compleo** - Framework principal
+- **Illuminate** - Composants Laravel
+- **Redis** - Système de cache
+- **Swagger** - Documentation API
+- **Symfony** - Composants divers
+- **Bugsnag** - Gestion des erreurs
+- **Clockwork** - Debugging
 
-#### Controllers
-Les contrôleurs principaux incluent :
-- `AdminController`: Gestion administrative
-- `AuthController`: Authentification
-- `ApiController`: Points d'entrée API
+## 📑 Table des Matières
 
-#### Services
-Services majeurs :
-- `UserService`: Gestion des utilisateurs
-- `BalanceService`: Calculs financiers
-- `ValidationService`: Validation des données
+### Architecture
+- [Structure du Projet](#structure-du-projet)
+- [Framework Compleo](#framework-compleo)
+- [Patterns de Conception](#patterns-de-conception)
 
-#### Models
-Modèles principaux :
-- `User`: Gestion des utilisateurs
-- `Sale`: Gestion des ventes
-- `Invoice`: Facturation
-- `Lead`: Prospects
+### Composants Principaux
+- [Système d'Authentication](#système-dauthentication)
+- [Gestion des Utilisateurs](#gestion-des-utilisateurs)
+- [Gestion des Sessions](#gestion-des-sessions)
+- [Système de Cache](#système-de-cache)
+- [Validation des Données](#validation-des-données)
+- [Gestion des Messages](#gestion-des-messages)
 
-### Middleware System
-```php
-// Configuration type des middlewares
-$App->use("/.*", \Middlewares\SessionMiddleware::class);
-$App->use("/admin/.*", \Middlewares\AuthMiddleware::class);
-$App->use("/.*", \Middlewares\CacheMiddleware::class);
-```
+### Base de Données
+- [Structure des Modèles](#structure-des-modèles)
+- [Relations](#relations)
+- [Migrations](#migrations)
+- [Observers](#observers)
 
-## Structure du projet
+### Services
+- [UserService](#userservice)
+- [ValidationService](#validationservice)
+- [BalanceService](#balanceservice)
+- [MessageService](#messageservice)
+
+### API
+- [Documentation Swagger](#documentation-swagger)
+- [Points d'Entrée](#points-dentrée)
+- [Authentication](#authentication)
+- [Formats de Réponse](#formats-de-réponse)
+
+### Interface Utilisateur
+- [Structure des Templates](#structure-des-templates)
+- [Assets](#assets)
+- [JavaScript](#javascript)
+- [Composants UI](#composants-ui)
+
+### Performance
+- [Cache System](#cache-system)
+- [Database Optimization](#database-optimization)
+- [Redis Integration](#redis-integration)
+
+### Debugging & Monitoring
+- [Clockwork Integration](#clockwork-integration)
+- [Bugsnag Error Tracking](#bugsnag-error-tracking)
+- [Logging System](#logging-system)
+
+## Structure du Projet
 
 ```
 src/
-├── app/
-│   ├── Controllers/
-│   │   ├── AdminController.php
-│   │   ├── AuthController.php
-│   │   └── ApiController.php
-│   ├── Models/
-│   │   ├── User.php
-│   │   ├── Sale.php
-│   │   └── Invoice.php
-│   ├── Services/
-│   │   ├── UserService.php
-│   │   └── BalanceService.php
-│   ├── Middlewares/
-│   └── Observers/
-├── template/
-│   ├── admin/
-│   │   ├── login.blade.php
-│   │   ├── userlist.blade.php
-│   │   └── useradd.blade.php
-│   └── layouts/
-├── public/
-└── vendor/
+├── app/                        # Cœur de l'application
+│   ├── Classes/               # Classes utilitaires (CrmFunctions, Helpers, Logger)
+│   ├── Controllers/           # Contrôleurs (Admin, Auth, Api)
+│   │   └── Api/              # Contrôleurs API
+│   ├── Middlewares/          # Middlewares (Auth, Cache, Session)
+│   ├── Models/               # Modèles de données
+│   │   └── Adapters/        # Adaptateurs de modèles
+│   ├── Observers/           # Observateurs (CacheObserver)
+│   ├── Services/            # Services métier (Balance, User)
+│   │   └── Validation/     # Services de validation
+│   ├── Traits/             # Traits PHP (ModelObservable)
+│   └── sql/                # Fichiers SQL
+│
+├── config/                    # Configuration
+│   ├── config.cached.php
+│   ├── index.php
+│   └── settings.php
+│
+├── docs/                      # Documentation
+├── public/                    # Fichiers publics
+│
+├── template/                  # Templates et vues
+│   ├── admin/               # Interface administrateur
+│   │   └── form/           # Formulaires admin
+│   └── api/                # Templates API
 ```
 
-## Base de données
+## Framework Compleo
 
-### Modèle de données
-Tables principales :
-- `user`: Stockage des utilisateurs
-- `sale`: Transactions de vente
-- `invoice`: Factures
-- `lead`: Prospects/leads
+Le Framework Compleo est un framework PHP moderne et léger qui sert de base à cette application CRM. Il fournit une structure robuste et des fonctionnalités essentielles :
 
-### Schéma de la table Users
-```php
-public static $SCHEMA = array(
-    "userId" => array(
-        "field" => "userid",
-        "fieldType" => "int",
-        "type" => "int",
-        "default" => null
-    ),
-    // ... autres champs
-);
-```
+### Caractéristiques du Framework
 
-## Authentification et sécurité
+- **Architecture MVC** - Organisation claire du code en Modèles, Vues et Contrôleurs
+- **Système de Routing** - Gestion flexible des routes et des endpoints
+- **Middleware System** - Pipeline de middlewares pour le traitement des requêtes
+- **ORM Intégré** - Manipulation simplifiée des données avec l'ORM
+- **Gestion de Cache** - Système de cache performant avec support Redis
+- **Sécurité** - Mécanismes de sécurité intégrés (XSS, CSRF, SQL Injection)
+- **Validation** - Système complet de validation des données
+- **Template Engine** - Moteur de template puissant et flexible
 
-### Système d'authentification
-Géré par `AuthController` et `AuthMiddleware`.
+Pour une documentation complète du framework, ses fonctionnalités et son utilisation, consultez le [README officiel du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
-```php
-class AuthController extends Controller
-{
-    public function login()
-    {
-        // Vérification de la session existante
-        if ($this->session->get('connexion')) {
-            $userType = $this->getUserType();
-            \Classes\redirectByUserType($userType);
-        }
-        
-        // Traitement de la connexion
-        // ...
-    }
-}
-```
+## Patterns de Conception
 
-### Middleware de sécurité
-```php
-class AuthMiddleware extends Middleware
-{
-    private const PUBLIC_PATHS = [
-        '/loginuser/',
-        '/login.php',
-        '/logout/'
-    ];
+L'application utilise plusieurs patterns de conception pour maintenir un code propre, modulaire et maintenable :
 
-    public function handle(HttpRequest $request, HttpResponse $response): HttpResponse
-    {
-        // Vérification de l'authentification
-        // ...
-    }
-}
-```
+### 1. Pattern Observer
+- Implémenté via `ModelObservable` trait et `CacheObserver`
+- Permet l'invalidation intelligente du cache lors des modifications de données
+- Utilisé pour la synchronisation entre les modèles et le cache
+- Exemple : Mise à jour automatique des soldes utilisateurs lors des modifications de ventes
 
-## Gestion des utilisateurs
+### 2. Pattern Middleware
+- Chaîne de responsabilité pour le traitement des requêtes HTTP
+- Middlewares clés :
+  - `AuthMiddleware` : Gestion de l'authentification et des autorisations
+  - `CacheMiddleware` : Optimisation des performances via le cache
+  - `SessionMiddleware` : Gestion des sessions utilisateur
 
-### Types d'utilisateurs
-- Admin: Accès complet
-- Client: Accès restreint aux fonctionnalités client
-- Provider: Accès aux fonctionnalités fournisseur
+### 3. Pattern Service
+- Encapsulation de la logique métier complexe
+- Services principaux :
+  - `BalanceService` : Calcul et gestion des soldes utilisateurs
+  - `UserService` : Gestion des opérations utilisateur
+  - `ValidationService` : Validation des données
 
-### Service utilisateur
-```php
-class UserService
-{
-    public function getUserById(int $userId): User|bool|null
-    {
-        try {
-            return $this->user->get($userId);
-        } catch (\Exception $e) {
-            throw new \RuntimeException("Erreur lors de la récupération du compte", 0, $e);
-        }
-    }
-}
-```
+### 4. Pattern Model-View-Controller (MVC)
+- Structure claire avec séparation des responsabilités :
+  - Modèles : Gestion des données et logique métier (`app/Models/`)
+  - Vues : Templates pour l'affichage (`template/`)
+  - Contrôleurs : Gestion des requêtes (`app/Controllers/`)
 
-### Validation des données utilisateur
-```php
-class UserValidationService
-{
-    public function validateUser(array $data): ConstraintViolationListInterface
-    {
-        $constraints = new Assert\Collection([
-            'fields' => $this->getFieldsConstraints(),
-            'allowExtraFields' => true,
-            'allowMissingFields' => true
-        ]);
-        // ...
-    }
-}
-```
+### 5. Pattern Repository
+- Abstraction de la couche de données via la classe `Model`
+- Gestion unifiée du cache et des requêtes
+- Utilisation de schémas pour la validation des données
 
-## Système de cache
+### 6. Pattern Adapter
+- Présent dans `Models/Adapters/`
+- Permet l'intégration flexible avec différentes sources de données
+- Standardise les interfaces de données
 
-### Architecture du cache
-Le système utilise un pattern Observer pour la gestion du cache :
+Pour plus de détails sur l'implémentation de ces patterns, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
-```php
-class CacheObserver 
-{
-    public function created(Model $model): void 
-    {
-        $this->handleModelChange($model, 'created');
-    }
+## 📝 License
 
-    public function updated(Model $model): void 
-    {
-        $this->handleModelChange($model, 'updated');
-    }
-}
-```
-
-### Stratégies de cache
-- Cache par utilisateur
-- Cache des soldes
-- Cache des listes globales
-
-### Invalidation intelligente
-```php
-private function handleUserChange(User $user, string $action): void
-{
-    $cache = $this->cacheManager->getCacheAdapter();
-    $cache->delete('UserList');
-    if ($action !== 'created') {
-        $cache->delete('balance_user_' . $user->{$user::$OBJ_INDEX});
-    }
-}
-```
-
-## API et intégrations
-
-### Points d'entrée API
-```php
-$App->all("/apiv2/{resource}")
-    ->setAction("Api\\ApiV2Controller@handleRequest")
-    ->where('resource', '[a-zA-Z]+');
-```
-
-### Webhooks
-Gérés par `WebhookController` pour les intégrations externes.
-
-```php
-class Webhook extends Controller
-{
-    public function receive($params)
-    {
-        // Validation et traitement des webhooks
-        // ...
-    }
-}
-```
-
-## Interface utilisateur
-
-### Templates Blade
-Le système utilise le moteur de template Blade modifié :
-
-```php
-@extends('admin.blanck')
-
-@section('content')
-    // Contenu de la page
-@endsection
-```
-
-### Composants réutilisables
-- Formulaires
-- Messages d'erreur/succès
-- Menus de navigation
-
-### DataTables
-Integration et configuration :
-```javascript
-var table = $('.dataTable').DataTable({
-    deferRender: true,
-    scrollY: 4000,
-    scrollCollapse: true,
-    scroller: true,
-    // ...
-});
-```
-
-## Performances et optimisation
-
-### Cache système
-- Utilisation de Redis/File système
-- Cache des requêtes fréquentes
-- Invalidation intelligente
-
-### Optimisation des requêtes
-- Utilisation d'index
-- Pagination des résultats
-- Chargement différé
-
-### Monitoring
-- DebugBar intégré
-- Logs détaillés des requêtes SQL
-- Surveillance des performances
-
-## Déploiement
-
-### Environnements
-- Développement
-- Staging
-- Production
-
-### Configuration
-```env
-DB_DRIVER=mysql
-DB_HOST=localhost
-DB_NAME=your_database
-DB_USER=your_user
-DB_PASSWORD=your_password
-```
-
-### Processus de déploiement
-1. Préparation du code
-2. Sauvegarde de la base de données
-3. Mise à jour des dépendances
-4. Migration de la base de données
-5. Tests de non-régression
-
-## Maintenance
-
-### Tâches régulières
-- Nettoyage des caches
-- Optimisation de la base de données
-- Vérification des logs
-
-### Gestion des erreurs
-```php
-set_error_handler('exceptions_error_handler');
-
-function exceptions_error_handler($severity, $message, $filename, $lineno)
-{
-    if ($severity == E_ERROR || $severity == E_USER_ERROR) {
-        throw new ErrorException($message, 0, $severity, $filename, $lineno);
-    }
-}
-```
-
-## Guide de contribution
-
-### Standards de code
-- PSR-1, PSR-4, PSR-12
-- Documentation PHPDoc obligatoire
-- Tests unitaires pour les nouvelles fonctionnalités
-
-### Processus de développement
-1. Création d'une branche feature
-2. Développement et tests
-3. Code review
-4. Merge dans develop
-5. Tests d'intégration
-6. Merge dans master
-
-## Dépannage
-
-### Problèmes courants
-1. Problèmes de cache
-   - Solution: Vider le cache système
-   - Commande: `?clearcache=1`
-
-2. Problèmes de session
-   - Solution: Réinitialiser la session
-   - Commande: `?clearsession=1`
-
-3. Erreurs de base de données
-   - Vérifier les logs
-   - Vérifier les connexions
-   - Optimiser les requêtes
-
-### Logging
-```php
-Logger::debug("Message de debug", [
-    'context' => $context,
-    'data' => $data
-]);
-```
-
-## Évolution du système
-
-### Améliorations prévues
-1. Mise à jour vers PHP 8.1+
-2. Amélioration du système de cache
-3. Optimisation des performances
-4. Nouvelle interface d'administration
-
-### Roadmap
-- Version 1.1: Amélioration de la sécurité
-- Version 1.2: Nouvelle API REST
-- Version 1.3: Interface responsive
-- Version 2.0: Refonte complète de l'interface
-
-## Support et ressources
-
-### Documentation supplémentaire
-- API Documentation: `/apiv2/docs`
-- Guide d'utilisation: [lien]
-- Wiki technique: [lien]
-
-### Contact
-- Support technique: [email]
-- Bug reports: [lien]
-- Feature requests: [lien]
+© 2025 Compleo Agency. Tous droits réservés.

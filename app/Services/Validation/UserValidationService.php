@@ -9,11 +9,37 @@ use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
+/**
+ * Service de validation des données utilisateur
+ * 
+ * Implémente la validation complète des données utilisateur en utilisant
+ * le composant Validator de Symfony. Gère les contraintes de validation
+ * pour chaque champ du modèle utilisateur.
+ *
+ * Fonctionnalités :
+ * - Validation des champs obligatoires
+ * - Validation des formats (email, téléphone, etc.)
+ * - Validation des valeurs numériques
+ * - Validation des règles métier spécifiques
+ *
+ * @package Services\Validation
+ * @uses \Symfony\Component\Validator\Validation
+ * @uses \Symfony\Component\Validator\Constraints
+ */
 class UserValidationService
 {
+    /** @var ValidatorInterface Instance du validateur Symfony */
     private $validator;
+
+    /** @var string Nom du champ en cours de validation */
     private $fieldName;
 
+    /**
+     * Liste des champs validables pour un utilisateur
+     * 
+     * @var array<string> Liste des noms de champs
+     * @static
+     */
     private static array $fields = [
         'registration_number',
         'company',
@@ -46,11 +72,30 @@ class UserValidationService
         'user_exclusion'
     ];
 
+    /**
+     * Initialise le service de validation
+     *
+     * Utilise soit le validateur fourni, soit en crée un nouveau.
+     *
+     * @param ValidatorInterface|null $validator Instance du validateur Symfony
+     */
     public function __construct(ValidatorInterface $validator = null)
     {
         $this->validator = $validator ?? Validation::createValidator();
     }
 
+    /**
+     * Valide les données d'un utilisateur
+     *
+     * Processus de validation :
+     * 1. Applique les contraintes de base pour chaque champ
+     * 2. Vérifie les champs obligatoires
+     * 3. Valide les règles métier spécifiques
+     * 4. Vérifie la présence d'au moins un numéro de téléphone
+     *
+     * @param array $data Données utilisateur à valider
+     * @return ConstraintViolationListInterface Liste des violations de contraintes
+     */
     public function validateUser(array $data): ConstraintViolationListInterface
     {
         $constraints = new Assert\Collection([
@@ -73,6 +118,15 @@ class UserValidationService
         return $violations;
     }
 
+    /**
+     * Récupère les contraintes pour tous les champs
+     *
+     * Pour chaque champ défini dans self::$fields, recherche une méthode
+     * de contraintes spécifique (get[FieldName]Constraints).
+     *
+     * @return array<string,Assert\Composite> Tableau des contraintes par champ
+     * @access private
+     */
     private function getFieldsConstraints(): array
     {
         $fieldsConstraints = [];
@@ -85,6 +139,14 @@ class UserValidationService
         return $fieldsConstraints;
     }
 
+    /**
+     * Vérifie si un champ est obligatoire
+     *
+     * Un champ est considéré obligatoire s'il a une contrainte NotBlank.
+     *
+     * @param string $fieldName Nom du champ à vérifier
+     * @return bool True si le champ est obligatoire
+     */
     public function isFieldRequired(string $fieldName): bool
     {
         $constraints = $this->getConstraintsForField($fieldName);
@@ -96,6 +158,14 @@ class UserValidationService
         return false;
     }
 
+    /**
+     * Récupère les contraintes pour un champ spécifique
+     *
+     * @param string $fieldName Nom du champ
+     * @return array<Assert\Constraint> Liste des contraintes du champ
+     * @access private
+     * @throws \RuntimeException Si la méthode de contraintes n'existe pas
+     */
     private function getConstraintsForField(string $fieldName): array
     {
         $method = 'get' . ucfirst($fieldName) . 'Constraints';
