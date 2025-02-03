@@ -42,6 +42,15 @@ Pour plus de détails sur le framework utilisé, consultez la [documentation du 
 - [Framework Compleo](#framework-compleo)
 - [Patterns de Conception](#patterns-de-conception)
 
+### Base de Données 
+- [Structure de la Base de Données](#structure-de-la-base-de-données)
+
+### Models
+- [Héritage de Model](#heritage-de-model)
+- [Liste des Models](#liste-des-models)
+- [Relations](#relations)
+- [Liste des Methodes héritées de Model](#liste-des-methodes)
+
 ### Composants Principaux
 - [Système d'Authentication](#système-dauthentication)
 - [Gestion des Utilisateurs](#gestion-des-utilisateurs)
@@ -49,12 +58,6 @@ Pour plus de détails sur le framework utilisé, consultez la [documentation du 
 - [Système de Cache](#système-de-cache)
 - [Validation des Données](#validation-des-données)
 - [Gestion des Messages](#gestion-des-messages)
-
-### Base de Données
-- [Structure des Modèles](#structure-des-modèles)
-- [Relations](#relations)
-- [Migrations](#migrations)
-- [Observers](#observers)
 
 ### Services
 - [UserService](#userservice)
@@ -173,6 +176,103 @@ L'application utilise plusieurs patterns de conception pour maintenir un code pr
 - Standardise les interfaces de données
 
 Pour plus de détails sur l'implémentation de ces patterns, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
+
+## Models
+
+### Héritage de Model
+
+La classe abstraite `Model` est le cœur du système de modèles de l'application. Elle fournit une base robuste pour l'interaction avec la base de données et implémente des fonctionnalités avancées :
+
+#### 1. Schéma et Typage
+```php
+public static $SCHEMA = [
+    'property_name' => [
+        'field' => 'db_field_name',  // Nom du champ en base de données
+        'type' => 'type_php',        // Type PHP (int, string, bool, array...)
+        'default' => 'value'         // Valeur par défaut
+    ]
+];
+```
+
+#### 2. Propriétés de Configuration
+```php
+public static $TABLE_NAME;   // Nom de la table en base de données
+public static $TABLE_INDEX;  // Clé primaire de la table
+public static $OBJ_INDEX;    // Index de l'objet (peut différer de TABLE_INDEX)
+```
+
+#### 3. Système de Cache Intelligent
+- Intégration avec `CacheObserver` pour l'invalidation automatique
+- Utilisation du trait `ModelObservable` pour la notification des changements
+- Cache automatique des requêtes fréquentes
+
+### Liste des Models
+
+L'application organise ses modèles en plusieurs catégories fonctionnelles :
+
+#### 1. Gestion des Utilisateurs et Administration
+```php
+// Utilisateurs et Authentification
+Models\User           // Comptes de facturation Tiers (Fourniseeur/Client)
+Models\ShopUser       // Comptes utilisateur boutique
+Models\CrmUser        // Comptes utilisateur du CRM
+Models\Administration // Paramètres système et configuration
+```
+
+#### 2. Gestion Commerciale et Finances
+```php
+// Ventes et Facturation
+Models\Sale           // Gestion des ventes
+Models\Invoice        // Facturation
+Models\InvoicePayment // Suivi des paiements
+Models\Purchase       // Gestion des achats
+
+// Campagnes Marketing
+
+Models\UserCampaign   // Association utilisateurs-campagnes
+```
+
+#### 3. Gestion des Leads et Contacts
+```php
+// Leads et Prospects
+Models\Campaign      // Liste des Metiers/ catégories de Lead
+Models\Lead          // Gestion des prospects
+Models\LeadManager   // Administration des leads
+Models\Contact       // Informations de contact
+Models\Project       // Gestion des projets
+Models\Meta          // Métadonnées des leads/projets/Contacts
+
+// Validation et Distribution
+Models\Validation           // Règles de validation
+Models\ValidationHistory    // Historique des validations
+Models\Bloctel              // Validation  Bloctel
+```
+
+### Liste des Méthodes
+
+Chaque modèle hérite des méthodes suivantes de la classe `Model` :
+
+#### 1. Méthodes de Base de Données
+```php
+// Lecture
+public function get(int $id)
+public function getList($limit = null, array $sqlParameters = null)
+
+// Écriture & Suppression
+public function save(): mixed (save & update)
+public function delete(int $id): bool
+```
+
+#### 2. Méthodes d'Hydratation
+```php
+public function hydrate(array $data = [], bool $strict = false)
+public function importObj(object $obj)
+public static function getSchema(): array
+```
+
+
+
+Pour plus de détails sur l'implémentation des modèles et leurs relations, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
 ## 📝 License
 
