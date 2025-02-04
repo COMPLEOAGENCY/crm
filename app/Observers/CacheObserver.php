@@ -157,7 +157,10 @@ class CacheObserver
                 break;
             default:
                 $className = (new \ReflectionClass($model))->getShortName();
-                $this->{"handle{$className}Change"}($model, $action);   
+                $methodName = "handle{$className}Change";
+                if (method_exists($this, $methodName)) {
+                    $this->{$methodName}($model, $action);
+                }
             break;                
         }
 
