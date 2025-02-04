@@ -3,6 +3,7 @@
 
 namespace Models;
 use Traits\ModelObservable;
+use Framework\CacheManager;
 
 use stdClass;
 /**

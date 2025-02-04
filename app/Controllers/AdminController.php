@@ -226,4 +226,8 @@ class AdminController extends Controller
                 $this->userService->validationMessageService->addError('Action non valide.');
         }
     }
+
+    public function blanck($params=[]) {
+        return $this->view("admin.template", $params);
+    }
 }

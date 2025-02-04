@@ -5,7 +5,7 @@ use Framework\Controller;
 use Framework\RedisConnection;
 
 class AdminRedis extends Controller {
-    public function info() {
+    public function info($params = []) {
         try {
             // Get Redis connection instance
             $redisConnection = RedisConnection::instance();
@@ -71,13 +71,14 @@ class AdminRedis extends Controller {
                 ]
             ];
 
-            return $this->view('admin/redis/info', ['kpis' => $kpis]);
+            $params['kpis'] = $kpis;
+            return $this->view('admin.redis.info', $params);
         } catch (\Exception $e) {
-            return $this->view('admin/redis/info', ['error' => $e->getMessage()]);
+            return $this->view('admin.redis.info', ['error' => $e->getMessage()]);
         }
     }
 
-    public function explore() {
+    public function explore($params = []) {
         try {
             $redisConnection = RedisConnection::instance();
             $redis = $redisConnection->getRedis();
@@ -86,8 +87,8 @@ class AdminRedis extends Controller {
                 throw new \Exception('Unable to connect to Redis.');
             }
 
-            // Get search filter
-            $filter = $this->request->get('filter', '*');
+            // Get search filter from params or use default
+            $filter = $params['filter'] ?? '*';
             
             // Get all keys matching the pattern
             $keys = $redis->keys($filter);
@@ -105,12 +106,11 @@ class AdminRedis extends Controller {
                 ];
             }
 
-            return $this->view('admin/redis/explore', [
-                'keys' => $keysData,
-                'filter' => $filter
-            ]);
+            $params['keys'] = $keysData;
+            $params['filter'] = $filter;
+            return $this->view('admin.redis.explore', $params);
         } catch (\Exception $e) {
-            return $this->view('admin/redis/explore', ['error' => $e->getMessage()]);
+            return $this->view('admin.redis.explore', ['error' => $e->getMessage()]);
         }
     }
 
@@ -145,19 +145,14 @@ class AdminRedis extends Controller {
         }
     }
 
-    public function deleteKey() {
+    public function deleteKey($params = []) {
         try {
-            if (!$this->request->isPost()) {
-                throw new \Exception('Method not allowed');
-            }
-
-            $key = $this->request->post('key');
-            if (!$key) {
+            if (!isset($params['key'])) {
                 throw new \Exception('Key is required');
             }
 
             $redis = RedisConnection::instance()->getRedis();
-            $redis->del($key);
+            $redis->del($params['key']);
 
             return json_encode(['success' => true]);
         } catch (\Exception $e) {

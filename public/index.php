@@ -88,7 +88,7 @@ try{
 
     // Route template vide
     $App->get("/admin/blanck")
-        ->setAction("Admin@blanck");
+        ->setAction("AdminController@blanck");
 
     // Routes Redis Admin
     $App->all("/admin/redis/info")
