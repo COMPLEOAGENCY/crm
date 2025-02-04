@@ -177,6 +177,41 @@ L'application utilise plusieurs patterns de conception pour maintenir un code pr
 
 Pour plus de détails sur l'implémentation de ces patterns, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
+## Système de Cache
+
+### CacheManager
+- Gère l'interface principale avec Redis
+- Accessible via un singleton : `CacheManager::instance()`
+- Fournit un adaptateur de cache via `getCacheAdapter()`
+
+Exemple d'utilisation :
+```php
+// Exemple d'utilisation du cache pour le solde utilisateur
+$cache = CacheManager::instance()->getCacheAdapter();
+$balanceCache = $cache->getItem("balance_user_$userId");
+
+// Vérification si présent en cache
+if ($balanceCache->isHit()) {
+    return $balanceCache->get();
+}
+
+// Si pas en cache, calcul et mise en cache
+$result = /* calcul du solde */;
+$balanceCache->set($result);
+$cache->save($balanceCache);
+```
+
+### Middleware de Cache (`app/Middlewares/CacheMiddleware.php`)
+- Permet de vider le cache via le paramètre URL `clearcache=1`
+- Intégré avec DebugBar pour le monitoring
+- Exemple d'utilisation : `votreurl.com?clearcache=1`
+
+### CacheObserver (`app/Observers/CacheObserver.php`)
+- Implémente le pattern Observer pour l'invalidation intelligente du cache
+- Observe les changements (create/update/delete) sur tous les modèles
+- Gère automatiquement l'invalidation des caches selon le type de modèle
+- Recalcule les données dépendantes (ex: soldes utilisateurs)
+
 ## Models
 
 ### Héritage de Model
