@@ -159,4 +159,55 @@ class AdminRedis extends Controller {
             return json_encode(['error' => $e->getMessage()]);
         }
     }
+
+    public function deleteKeys($params = []) {
+        try {
+            if (!isset($params['keys']) || !is_array($params['keys'])) {
+                throw new \Exception('Keys array is required');
+            }
+
+            $redis = RedisConnection::instance()->getRedis();
+            foreach ($params['keys'] as $key) {
+                $redis->del($key);
+            }
+
+            return json_encode(['success' => true]);
+        } catch (\Exception $e) {
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function getValue($params = []) {
+        try {
+            if (!isset($params['key'])) {
+                throw new \Exception('Key is required');
+            }
+
+            $redis = RedisConnection::instance()->getRedis();
+            $key = $params['key'];
+            $type = $redis->type($key);
+            $value = $this->getKeyValue($redis, $key, $type);
+
+            return json_encode(['success' => true, 'value' => $value]);
+        } catch (\Exception $e) {
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    private function getKeyValue($redis, $key, $type) {
+        switch ($type) {
+            case \Redis::REDIS_STRING:
+                return $redis->get($key);
+            case \Redis::REDIS_LIST:
+                return $redis->lRange($key, 0, -1);
+            case \Redis::REDIS_SET:
+                return $redis->sMembers($key);
+            case \Redis::REDIS_ZSET:
+                return $redis->zRange($key, 0, -1, true);
+            case \Redis::REDIS_HASH:
+                return $redis->hGetAll($key);
+            default:
+                return null;
+        }
+    }
 }

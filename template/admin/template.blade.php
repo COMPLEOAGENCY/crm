@@ -12,6 +12,14 @@
 @endsection
 
 @section('content')
+<div class="col-12 mt-3 mb-5 page-header">
+    <h1>{{ $title }}</h1>
+</div>
+
+{{-- Inclusion des messages --}}
+@include('admin.messages')
+
+@section('content')
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">

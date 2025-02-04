@@ -100,6 +100,12 @@ try{
     $App->all("/admin/redis/delete-key")
         ->setAction("AdminRedis@deleteKey");
 
+    $App->all("/admin/redis/delete-keys")
+        ->setAction("AdminRedis@deleteKeys");
+
+    $App->all("/admin/redis/get-value")
+        ->setAction("AdminRedis@getValue");
+
 // Dans index.php
 
 // Routes pour APIv2
