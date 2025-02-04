@@ -4,7 +4,7 @@
 
 @section('custom-css')
 @parent {{-- Pour garder les scripts existants --}}
-<link rel="stylesheet" href="{{ asset('assets/css/custom-user.css') }}">
+<!-- <link rel="stylesheet" href="{{ asset('assets/css/custom.css') }}"> -->
 @endsection
 
 @section('menu')

@@ -86,6 +86,20 @@ try{
     $App->all("/webhook/receive")
         ->setAction("Webhook@receive");
 
+    // Route template vide
+    $App->get("/admin/blanck")
+        ->setAction("Admin@blanck");
+
+    // Routes Redis Admin
+    $App->all("/admin/redis/info")
+        ->setAction("AdminRedis@info");
+
+    $App->all("/admin/redis/explore")
+        ->setAction("AdminRedis@explore");
+
+    $App->all("/admin/redis/delete-key")
+        ->setAction("AdminRedis@deleteKey");
+
 // Dans index.php
 
 // Routes pour APIv2

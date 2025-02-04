@@ -73,6 +73,10 @@
                     <a class="dropdown-item" href="/admin/userlist/">Liste des comptes</a>
                     <a class="dropdown-item" href="/admin/user-add.php">Ajouter un compte</a>
                     <div class="dropdown-divider"></div>
+                    <div class="dropdown-header">Redis</div>
+                    <a class="dropdown-item" href="/admin/redis/info">État du serveur Redis</a>
+                    <a class="dropdown-item" href="/admin/redis/explore">Explorateur Redis</a>
+                    <div class="dropdown-divider"></div>
                     <div class="dropdown-header">Utilisateurs</div>
                     <a class="dropdown-item" href="/admin/user-sub.php">Liste des utilisateurs</a>
                     <a class="dropdown-item" href="/admin/user-sub-add.php">Ajouter un utilisateur</a>
