@@ -1,4 +1,4 @@
-# CRM Compleo 🚀
+# CRM Compleo 
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://php.net)
 [![Framework](https://img.shields.io/badge/Framework-Compleo-orange.svg)](https://github.com/COMPLEOAGENCY/Framework)
@@ -6,13 +6,13 @@
 
 > Une application CRM moderne et puissante construite avec le Framework Compleo
 
-## 📋 Présentation
+## Présentation
 
 Le CRM Compleo est une solution complète de gestion de la relation client, développée avec le Framework Compleo. Cette application PHP moderne suit une architecture MVC (Modèle-Vue-Contrôleur) et intègre les meilleures pratiques de développement.
 
 Pour plus de détails sur le framework utilisé, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
-### ✨ Caractéristiques Principales
+### Caractéristiques Principales
 
 - ⚡️ Application PHP 8.1+
 - 🏗️ Architecture MVC
@@ -24,7 +24,7 @@ Pour plus de détails sur le framework utilisé, consultez la [documentation du 
 - ✅ Système de validation robuste
 - 🔒 Gestion des sessions sécurisée
 
-### 🛠️ Technologies Clés
+### Technologies Clés
 
 - **PHP 8.1+** - Langage de base
 - **Framework Compleo** - Framework principal
@@ -35,7 +35,7 @@ Pour plus de détails sur le framework utilisé, consultez la [documentation du 
 - **Bugsnag** - Gestion des erreurs
 - **Clockwork** - Debugging
 
-## 📑 Table des Matières
+## Table des Matières
 
 ### Architecture
 - [Structure du Projet](#structure-du-projet)
@@ -212,6 +212,135 @@ $cache->save($balanceCache);
 - Gère automatiquement l'invalidation des caches selon le type de modèle
 - Recalcule les données dépendantes (ex: soldes utilisateurs)
 
+#### Documentation Technique Détaillée
+
+1. **Initialisation du système**
+```php
+// Dans CacheObserverMiddleware
+Model::observe(new CacheObserver());
+```
+- Le middleware initialise le CacheObserver au démarrage de l'application
+- Utilise le trait `ModelObservable` qui permet aux modèles d'être observés
+
+2. **Structure des classes impliquées**
+- `Model` (classe abstraite de base)
+  - Utilise le trait `ModelObservable`
+  - Gère les opérations CRUD de base
+  - Notifie les observateurs des changements
+
+- `CacheObserver`
+  - Observe tous les modèles
+  - Gère l'invalidation intelligente du cache
+  - Contient des handlers spécifiques par type de modèle
+
+3. **Flux d'exécution lors d'un save()**
+```php
+// 1. Appel de save() sur un modèle
+$model->save();
+
+// 2. Dans Model::performSave()
+$isNew = empty($this->{static::$OBJ_INDEX});
+$result = Database::instance()->updateOrInsert(/*...*/);
+if ($result !== false) {
+    // 3. Notification des observateurs
+    $this->notifyObservers($isNew ? 'created' : 'updated');
+}
+
+// 4. Dans CacheObserver
+public function updated(Model $model): void {
+    $this->handleModelChange($model, 'updated');
+}
+
+// 5. Gestion spécifique selon le type de modèle
+private function handleModelChange(Model $model, string $action): void {
+    $cache = $this->cacheManager->getCacheAdapter();
+    switch (get_class($model)) {
+        case Sale::class:
+            $this->handleSaleChange($model);
+            break;
+        case User::class:
+            $this->handleUserChange($model, $action);
+            break;
+        // ...
+    }
+}
+```
+
+4. **Handlers spécifiques par type**
+
+Pour implémenter un nouveau handler dans le CacheObserver, vous devez :
+1. Créer une méthode `handle{ModelName}Change` dans la classe CacheObserver
+2. Gérer les clés de cache spécifiques au modèle
+3. Implémenter la logique d'invalidation et de recalcul
+
+Les actions par défaut disponibles dans Model sont :
+- `created` : Appelé après la création d'un nouvel enregistrement
+- `updated` : Appelé après la mise à jour d'un enregistrement existant
+- `deleted` : Appelé après la suppression d'un enregistrement
+
+Exemple d'implémentation de handlers :
+```php
+// Exemple pour User
+private function handleUserChange(User $user, string $action): void {
+    $cache = $this->cacheManager->getCacheAdapter();
+    // Invalide la liste des utilisateurs
+    $cache->delete('UserList');
+    
+    // Invalide le cache du solde sauf pour une création
+    if ($action !== 'created') {
+        $cache->delete('balance_user_' . $user->{$user::$OBJ_INDEX});
+    }
+}
+
+// Exemple pour Sale/Invoice
+private function handleSaleChange(Sale $sale): void {
+    $cache = $this->cacheManager->getCacheAdapter();
+    // Une vente modifie le solde de l'utilisateur
+    $cache->delete('balance_user_' . $sale->userid);
+    
+    // Force le recalcul immédiat du solde
+    $this->balanceService->getSoldeDetails($sale->userid, true);
+}
+
+// Exemple de handler générique pour un nouveau modèle
+private function handleCustomModelChange(CustomModel $model, string $action): void {
+    $cache = $this->cacheManager->getCacheAdapter();
+    
+    // 1. Invalider les listes
+    $cache->delete('CustomModelList');
+    
+    // 2. Invalider les caches spécifiques
+    switch ($action) {
+        case 'created':
+            // Gérer la création
+            break;
+        case 'updated':
+            // Gérer la mise à jour
+            $cache->delete('custom_model_' . $model->{$model::$OBJ_INDEX});
+            break;
+        case 'deleted':
+            // Gérer la suppression
+            $cache->delete('custom_model_' . $model->{$model::$OBJ_INDEX});
+            // Nettoyer les caches liés
+            break;
+    }
+    
+    // 3. Gérer les dépendances
+    if (property_exists($model, 'user_id')) {
+        $cache->delete('user_custom_models_' . $model->user_id);
+    }
+}
+```
+
+5. **Points clés du système**
+- Invalidation intelligente : seules les clés pertinentes sont invalidées
+- Recalcul automatique : certaines données sont recalculées immédiatement
+- Gestion des dépendances : les relations entre modèles sont prises en compte
+- Performance : utilisation de Redis comme backend de cache
+- Monitoring : intégration avec DebugBar pour le suivi
+
+Ce système permet une gestion efficace et automatique du cache, avec une invalidation ciblée selon le type de modèle et l'action effectuée, tout en maintenant la cohérence des données entre les différents modèles liés.
+
 ## Models
 
 ### Héritage de Model
@@ -305,10 +434,8 @@ public function importObj(object $obj)
 public static function getSchema(): array
 ```
 
-
-
 Pour plus de détails sur l'implémentation des modèles et leurs relations, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
-## 📝 License
+## License
 
-© 2025 Compleo Agency. Tous droits réservés. @COMPLEOAGENCY
+ 2025 Compleo Agency. Tous droits réservés. @COMPLEOAGENCY
