@@ -276,4 +276,4 @@ Pour plus de détails sur l'implémentation des modèles et leurs relations, con
 
 ## 📝 License
 
-© 2025 Compleo Agency. Tous droits réservés.
+© 2025 Compleo Agency. Tous droits réservés. @COMPLEOAGENCY
