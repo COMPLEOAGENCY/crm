@@ -155,6 +155,10 @@ class CacheObserver
             case Invoice::class:
                 $this->handleInvoiceChange($model);
                 break;
+            default:
+                $className = (new \ReflectionClass($model))->getShortName();
+                $this->{"handle{$className}Change"}($model, $action);   
+            break;                
         }
 
         // Log en mode debug
