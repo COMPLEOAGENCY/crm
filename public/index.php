@@ -106,6 +106,10 @@ try{
     $App->all("/admin/redis/get-value")
         ->setAction("AdminRedis@getValue");
 
+    // Route Chat AI
+    $App->get("/admin/ai/chat")
+        ->setAction("Ai\\AiChatController@index");
+
 // Dans index.php
 
 // Routes pour APIv2

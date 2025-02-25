@@ -26,10 +26,14 @@ class ProjectAdapter implements LeadComponentInterface
             $this->project = $this->project->get($lead->leadId) ?: new Project();
             
             // Récupérer les projets liés par email
+            $this->relatedProjects = [];
             if ($lead->email) {
                 $this->relatedProjects = $this->project->getList(
                     null, 
-                    ['email' => $lead->email],
+                    [
+                        ['email', '=', $lead->email],
+                        ['leadId', '!=', $lead->leadId] // Exclure le lead courant
+                    ],
                     null,
                     null,
                     'timestamp',

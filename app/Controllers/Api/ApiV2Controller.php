@@ -113,6 +113,12 @@ class ApiV2Controller extends Controller
     /** @var array Directions valides pour le tri */
     private const VALID_SORT_DIRECTIONS = ['asc', 'desc'];
 
+    /** @var array Mapping des noms de ressources pour gérer la casse */
+    private const RESOURCE_MAPPING = [
+        'leadmanager' => 'LeadManager',
+        // Ajouter d'autres mappings si nécessaire
+    ];
+
     private $cacheManager;
     
     /**
@@ -152,6 +158,12 @@ class ApiV2Controller extends Controller
             $id = $params['id'] ?? null;
             $limit = $params['limit'] ?? 100;
             $requestData = $this->_httpRequest->getParams();
+
+            // Correction de la casse de la ressource
+            $resourceLower = strtolower($resource);
+            if (isset(self::RESOURCE_MAPPING[$resourceLower])) {
+                $resource = self::RESOURCE_MAPPING[$resourceLower];
+            }
 
             // Déterminer la méthode en fonction de la requête HTTP et des paramètres
             $httpMethod = strtolower($this->_httpRequest->getMethod());
