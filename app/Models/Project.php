@@ -1,7 +1,7 @@
 <?php
 namespace Models;
 
-class Project extends Model
+class Project extends Model implements \JsonSerializable
 {
     public static $TABLE_NAME = 'lead';
     public static $TABLE_INDEX = 'leadid';
@@ -84,9 +84,6 @@ class Project extends Model
 
     public function __construct($data = [])
     {
-        $data= [
-            'leadId' => '3337032',
-            'campaignId' => '31'];
         parent::__construct($data);        
 
         // Charger la campagne si on a un campaignId
@@ -168,5 +165,36 @@ class Project extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Spécifie les données à sérialiser en JSON
+     * 
+     * @return array
+     */
+    public function jsonSerialize(): array
+    {
+        $data = [];
+        
+        // Ajouter toutes les propriétés du schéma
+        foreach (static::$SCHEMA as $property => $propertySet) {
+            if (property_exists($this, $property)) {
+                $data[$property] = $this->$property;
+            }
+        }
+        
+        // S'assurer que campaign est correctement initialisé
+        if (empty($data['campaign']) && !empty($this->campaignId)) {
+            $campaign = new Campaign();
+            $data['campaign'] = $campaign->get($this->campaignId);
+        }
+        
+        // S'assurer que questions est correctement initialisé
+        if (empty($data['questions']) && !empty($this->campaignId)) {
+            $this->loadCampaignQuestions();
+            $data['questions'] = $this->questions;
+        }
+        
+        return $data;
     }
 }
