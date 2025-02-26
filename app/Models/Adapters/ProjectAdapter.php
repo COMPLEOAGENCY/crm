@@ -56,24 +56,4 @@ class ProjectAdapter implements LeadComponentInterface
         // Ne pas implémenter pour la lecture seule
         return false;
     }
-
-    private function getProjectQuestions($campaignId)
-    {
-        $question = new Question();
-        
-        // Convertir les noms de propriétés en noms de champs
-        $filters = Model::convertToFieldNames([
-            'campaignId' => $this->project->campaignId,
-            'status' => 'on'
-        ], Question::$SCHEMA);
-        
-        return $question->getList(
-            null,
-            $filters,
-            null,
-            null,
-            'order',
-            'asc'
-        );
-    }
 }
