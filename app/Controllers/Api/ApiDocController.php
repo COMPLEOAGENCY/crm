@@ -318,9 +318,11 @@ class ApiDocController extends Controller
                 ],
                 'project' => [
                     'type' => 'object',
-                    'description' => 'Informations du projet',
+                    'description' => 'Informations du projet et questions de la campagne',
                     'adapter' => 'ProjectAdapter',
                     'fields' => [
+                        'leadId' => ['type' => 'int', 'example' => 123],
+                        'campaignId' => ['type' => 'int', 'example' => 456],
                         'address' => [
                             'type' => 'object',
                             'fields' => [
@@ -329,6 +331,20 @@ class ApiDocController extends Controller
                                 'postalCode' => ['type' => 'string', 'example' => '75001'],
                                 'city' => ['type' => 'string', 'example' => 'Paris'],
                                 'country' => ['type' => 'string', 'example' => 'France']
+                            ]
+                        ],
+                        'questions' => [
+                            'type' => 'object',
+                            'description' => 'Questions de la campagne avec leurs réponses',
+                            'example' => [
+                                'type_travaux' => [
+                                    'questionId' => 555,
+                                    'label' => 'type_travaux',
+                                    'question' => 'Type de travaux',
+                                    'type' => 'select',
+                                    'defaultValues' => "Rénovation\nConstruction neuve\nAutre",
+                                    'value' => 'Rénovation'
+                                ]
                             ]
                         ]
                     ]
@@ -384,61 +400,11 @@ class ApiDocController extends Controller
                         'explanation' => 'Récupère les leads dont l\'email du contact se termine par @gmail.com'
                     ],
                     [
-                        'description' => 'Filtre sur adresse',
-                        'request' => 'GET /apiv2/leadmanager?filter={"project[address][city]":"Paris"}',
-                        'explanation' => 'Récupère les leads situés à Paris'
-                    ],
-                    [
-                        'description' => 'Filtre sur prix d\'achat',
-                        'request' => 'GET /apiv2/leadmanager?filter={"purchase[data][price]":{"operator":">","value":1000}}',
-                        'explanation' => 'Récupère les leads avec un prix d\'achat supérieur à 1000'
-                    ],
-                    [
-                        'description' => 'Filtres multiples combinés',
-                        'request' => 'GET /apiv2/leadmanager?filter={"contact[firstName]":"John","project[address][city]":"Paris","sales[data][price]":{"operator":">","value":1000}}',
-                        'explanation' => 'Récupère les leads de John à Paris avec des ventes supérieures à 1000'
-                    ]
-                ],
-                'tri' => [
-                    [
-                        'description' => 'Tri simple sur ID',
-                        'request' => 'GET /apiv2/leadmanager?sort=leadId&order=desc',
-                        'explanation' => 'Trie les leads par ID décroissant'
-                    ],
-                    [
-                        'description' => 'Tri sur date de création',
-                        'request' => 'GET /apiv2/leadmanager?sort=createdAt&order=desc',
-                        'explanation' => 'Trie les leads du plus récent au plus ancien'
-                    ],
-                    [
-                        'description' => 'Tri sur nom de contact',
-                        'request' => 'GET /apiv2/leadmanager?sort=contact[lastName]&order=asc',
-                        'explanation' => 'Trie les leads par nom de contact alphabétique'
-                    ],
-                    [
-                        'description' => 'Tri sur ville',
-                        'request' => 'GET /apiv2/leadmanager?sort=project[address][city]&order=asc',
-                        'explanation' => 'Trie les leads par ville alphabétique'
-                    ]
-                ],
-                'pagination' => [
-                    [
-                        'description' => 'Pagination simple',
-                        'request' => 'GET /apiv2/leadmanager?page=1&limit=50',
-                        'explanation' => 'Récupère les 50 premiers leads'
-                    ],
-                    [
-                        'description' => 'Pagination avec tri et filtre',
-                        'request' => 'GET /apiv2/leadmanager?page=2&limit=25&sort=createdAt&order=desc&filter={"project[address][city]":"Paris"}',
-                        'explanation' => 'Récupère la deuxième page de 25 leads à Paris, triés par date de création décroissante'
+                        'description' => 'Filtre sur questions de campagne',
+                        'request' => 'GET /apiv2/leadmanager?filter={"project[questions][type_travaux][value]":"Rénovation"}',
+                        'explanation' => 'Récupère les leads dont le type de travaux est Rénovation'
                     ]
                 ]
-            ],
-            'notes' => [
-                'Filtrage' => 'Tous les champs du schéma peuvent être utilisés pour le filtrage, y compris les champs imbriqués',
-                'Tri' => 'Le tri est possible sur tous les champs simples et certains champs imbriqués',
-                'Cache' => 'Le système invalide automatiquement le cache lors des modifications',
-                'Relations' => 'Toutes les relations sont chargées automatiquement'
             ]
         ];
     }

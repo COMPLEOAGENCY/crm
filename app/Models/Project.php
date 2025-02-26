@@ -66,11 +66,58 @@ class Project extends Model
             "fieldType" => "string",
             "type" => "string",
             "default" => ""
+        ),
+        "questions" => array(
+            "field" => null,
+            "fieldType" => "array",
+            "type" => "array",
+            "default" => array()
         )
     );
 
-    public function __construct(array $data = [])
+    public function __construct($data = [])
     {
         parent::__construct($data);
+        
+        if (!empty($this->campaignId)) {
+            $this->loadCampaignQuestions();
+        }
+    }
+
+    /**
+     * Charge toutes les questions de la campagne et leurs valeurs si disponibles
+     */
+    protected function loadCampaignQuestions()
+    {
+        // Charger d'abord les métadonnées si on a un leadId
+        $metaData = [];
+        if (!empty($this->leadId)) {
+            $meta = new Meta();
+            $metaData = $meta->getAllMetaForRow($this->leadId, 'lead', true);
+        }
+
+        // Charger toutes les questions de la campagne
+        $question = new Question();
+        $campaignQuestions = $question->getQuestionByCampaignId($this->campaignId);
+
+        $this->questions = [];
+
+        // Initialiser toutes les questions avec leurs valeurs
+        foreach ($campaignQuestions as $question) {
+            // Déterminer la valeur
+            $value = null;
+            if (isset($metaData[$question->label])) {
+                // Valeur trouvée dans les métadonnées
+                $value = $metaData[$question->label];
+            }
+
+            // Stocker la question avec toutes ses propriétés
+            $this->questions[$question->label] = array_merge((array) $question, [
+                'value' => $value
+            ]);
+
+            // Créer la propriété dynamique
+            // $this->{$question->label} = $value;
+        }
     }
 }

@@ -511,4 +511,29 @@ abstract class Model
         return $list;
     }    
 
+    /**
+     * Convertit les noms de propriétés en noms de champs de la base de données
+     * 
+     * @param array $parameters Paramètres avec les noms de propriétés
+     * @param array $schema Schéma contenant le mapping propriété -> champ
+     * @return array Paramètres avec les noms de champs
+     */
+    public static function convertToFieldNames(array $parameters, array $schema): array
+    {
+        if (empty($parameters)) {
+            return [];
+        }
+
+        $converted = [];
+        foreach ($parameters as $key => $value) {
+            // Si la clé existe dans le schéma, utiliser le nom du champ
+            if (isset($schema[$key])) {
+                $converted[$schema[$key]['field']] = $value;
+            } else {
+                // Sinon garder la clé telle quelle
+                $converted[$key] = $value;
+            }
+        }
+        return $converted;
+    }
 }

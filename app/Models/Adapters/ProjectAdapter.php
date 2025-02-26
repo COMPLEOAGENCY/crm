@@ -4,12 +4,13 @@ namespace Models\Adapters;
 
 use Models\Project;
 use Models\Lead as LegacyLead;
+use Models\Question;
+use Models\Model;
 
 class ProjectAdapter implements LeadComponentInterface
 {
     private ?Project $project;
     private ?LegacyLead $lead;
-    private array $relatedProjects = [];
 
     public static function getSchema()
     {
@@ -22,24 +23,11 @@ class ProjectAdapter implements LeadComponentInterface
         $this->project = new Project();
         
         if ($lead !== null && !empty($lead->leadId)) {
-            // Récupérer le projet principal par leadId
-            $this->project = $this->project->get($lead->leadId) ?: new Project();
-            
-            // Récupérer les projets liés par email
-            $this->relatedProjects = [];
-            if ($lead->email) {
-                $this->relatedProjects = $this->project->getList(
-                    null, 
-                    [
-                        ['email', '=', $lead->email],
-                        ['leadId', '!=', $lead->leadId] // Exclure le lead courant
-                    ],
-                    null,
-                    null,
-                    'timestamp',
-                    'desc'
-                );
-            }
+            // Initialiser le projet avec le leadId et campaignId pour charger les questions
+            $this->project = new Project([
+                'leadId' => $lead->leadId,
+                'campaignId' => $lead->campaignid
+            ]);
         }
     }
 
@@ -48,11 +36,13 @@ class ProjectAdapter implements LeadComponentInterface
         if (!$this->project) {
             return null;
         }
-        
-        $data = $this->project;
-        $data->relatedProjects = $this->relatedProjects;
-        
-        return $data;
+
+        return $this->project;
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return $this->getData();
     }
 
     // Lecture seule pour la relation one-to-many
@@ -65,5 +55,25 @@ class ProjectAdapter implements LeadComponentInterface
     {
         // Ne pas implémenter pour la lecture seule
         return false;
+    }
+
+    private function getProjectQuestions($campaignId)
+    {
+        $question = new Question();
+        
+        // Convertir les noms de propriétés en noms de champs
+        $filters = Model::convertToFieldNames([
+            'campaignId' => $this->project->campaignId,
+            'status' => 'on'
+        ], Question::$SCHEMA);
+        
+        return $question->getList(
+            null,
+            $filters,
+            null,
+            null,
+            'order',
+            'asc'
+        );
     }
 }

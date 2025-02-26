@@ -1,4 +1,5 @@
 <?php
+
 namespace Models;
 
 class Lead extends Model
@@ -16,7 +17,7 @@ class Lead extends Model
         "provider_leadid" => array(
             "field" => "provider_leadid",
             "fieldType" => "string",
-            "type" => "string", 
+            "type" => "string",
             "default" => ""
         ),
         "sourceid" => array(
@@ -26,21 +27,21 @@ class Lead extends Model
             "default" => 0
         ),
         "campaignid" => array(
-            "field" => "campaignid", 
+            "field" => "campaignid",
             "fieldType" => "int",
             "type" => "int",
             "default" => 0
         ),
         "timestamp" => array(
             "field" => "timestamp",
-            "fieldType" => "int", 
+            "fieldType" => "int",
             "type" => "int",
             "default" => 0
         ),
         "update_timestamp" => array(
             "field" => "update_timestamp",
             "fieldType" => "int",
-            "type" => "int", 
+            "type" => "int",
             "default" => 0
         ),
         "last_update_userid" => array(
@@ -57,7 +58,7 @@ class Lead extends Model
         ),
         "hash" => array(
             "field" => "hash",
-            "fieldType" => "string", 
+            "fieldType" => "string",
             "type" => "string",
             "default" => ""
         ),
@@ -93,7 +94,7 @@ class Lead extends Model
         ),
         "address2" => array(
             "field" => "address2",
-            "fieldType" => "string", 
+            "fieldType" => "string",
             "type" => "string",
             "default" => ""
         ),
@@ -254,7 +255,7 @@ class Lead extends Model
             "default" => ""
         ),
         "utm_content" => array(
-            "field" => "utm_content", 
+            "field" => "utm_content",
             "fieldType" => "string",
             "type" => "string",
             "default" => ""
@@ -351,7 +352,7 @@ class Lead extends Model
         ),
         'contact' => [
             'type' => 'relation',
-            'table' => 'lead',  
+            'table' => 'lead',
             'schema' => [
                 'phone' => ['field' => 'phone', 'type' => 'string'],
                 // Autres champs de contact si nécessaire
@@ -359,96 +360,10 @@ class Lead extends Model
         ],
     );
 
-    protected $questions = [];
+
 
     public function __construct($data = [])
     {
         parent::__construct($data);
-    }
-
-    public function afterGet() 
-    {       
-        // Récupérer les métadonnées
-        $meta = new Meta();
-        $metaData = $meta->getAllMetaForRow($this->leadId, 'lead', false);
-        
-        if ($metaData) {
-            foreach ($metaData as $data) {
-                if (!empty($data->value)) {
-                    $question = new Question();
-                    $questionObj = $question->getQuestionByLabel($data->label);
-                    
-                    if ($questionObj && is_array($questionObj) && count($questionObj) > 0) {
-                        $string = str_ireplace(" ", "_", strtolower($questionObj[0]->label));
-                        $this->$string = strtolower($data->value);
-                        $this->questions[$data->label] = $data->value;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Enregistre les métadonnées pour un lead
-     * 
-     * @param array $data Les données à enregistrer
-     * @return bool
-     */
-    public function recordLeadMeta($data)
-    {
-        if (empty($data) || empty($this->leadId)) {
-            return false;
-        }
-
-        if (!is_array($data)) {
-            $data = (array) $data;
-        }
-
-        // Récupérer les champs de la campagne
-        $campaign = new Campaign();
-        $fields = $campaign->getFieldsByCampaignId($this->campaignid);
-        
-        if (empty($fields)) {
-            return true; // Pas de champs à enregistrer
-        }
-
-        $meta = new Meta();
-        $success = true;
-
-        foreach ($fields as $label => $field) {
-            if (isset($data[$label])) {
-                $value = $data[$label];
-                
-                // Traitement spécial pour les champs de type select
-                if (isset($field['type']) && $field['type'] === 'select' && is_numeric($value)) {
-                    if (isset($field['default_values'][$value - 1]) && !is_numeric($field['default_values'][$value - 1])) {
-                        $value = $field['default_values'][$value - 1];
-                    }
-                }
-
-                if (!empty(trim($value))) {
-                    if (!$meta->addRowValue('lead', $this->leadId, $label, $value)) {
-                        $success = false;
-                    }
-                }
-            }
-        }
-
-        return $success;
-    }
-
-    /**
-     * Récupère toutes les métadonnées d'un lead
-     * 
-     * @return array|false
-     */
-    public function getMeta()
-    {
-        if (empty($this->leadId)) {
-            return false;
-        }
-
-        $meta = new Meta();
-        return $meta->getAllMetaForRow($this->leadId, 'lead');
     }
 }
