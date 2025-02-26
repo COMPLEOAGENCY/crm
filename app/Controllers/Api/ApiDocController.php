@@ -346,6 +346,16 @@ class ApiDocController extends Controller
                                     'value' => 'Rénovation'
                                 ]
                             ]
+                        ],
+                        'campaign' => [
+                            'type' => 'object',
+                            'description' => 'Informations détaillées sur la campagne associée au projet',
+                            'fields' => [
+                                'campaignId' => ['type' => 'int', 'example' => 456],
+                                'name' => ['type' => 'string', 'example' => 'Campagne Rénovation 2025'],
+                                'details' => ['type' => 'string', 'example' => 'Campagne de rénovation énergétique'],
+                                'price' => ['type' => 'float', 'example' => 10.0]
+                            ]
                         ]
                     ]
                 ],
