@@ -37,6 +37,12 @@ class Project extends Model
             "type" => "string",
             "default" => ""
         ),
+        "campaign" => array(
+            "field" => null,
+            "fieldType" => "array",
+            "type" => "array",
+            "default" => array()
+        ),     
         "address1" => array(
             "field" => "address1",
             "fieldType" => "string",
@@ -75,13 +81,21 @@ class Project extends Model
         )
     );
 
+
     public function __construct($data = [])
     {
-        parent::__construct($data);
-        
+        $data= [
+            'leadId' => '3337032',
+            'campaignId' => '31'];
+        parent::__construct($data);        
+
+        // Charger la campagne si on a un campaignId
         if (!empty($this->campaignId)) {
+            $campaign = new Campaign();
+            $this->campaign = $campaign->get($this->campaignId);
             $this->loadCampaignQuestions();
         }
+        // var_dump($this);exit;
     }
 
     /**
@@ -119,5 +133,40 @@ class Project extends Model
             // Créer la propriété dynamique
             // $this->{$question->label} = $value;
         }
+    }
+
+    /**
+     * Récupère la campagne associée au projet
+     * 
+     * @return Campaign|null
+     */
+    public function getCampaign(): ?Campaign
+    {
+        return $this->campaign;
+    }
+
+    /**
+     * Sauvegarde le projet et ses questions
+     * 
+     * @return bool
+     */
+    public function save()
+    {
+        // Sauvegarder d'abord le projet lui-même
+        $result = parent::save();
+        
+        if (!$result || empty($this->questions)) {
+            return $result;
+        }
+
+        // Sauvegarder les réponses aux questions
+        $meta = new Meta();
+        foreach ($this->questions as $label => $question) {
+            if (isset($question['value'])) {
+                $meta->addRowValue('lead', $this->leadId, $label, $question['value']);
+            }
+        }
+
+        return true;
     }
 }

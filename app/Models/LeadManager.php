@@ -29,7 +29,7 @@ class LeadManager implements \JsonSerializable
                 'project' => [
                     'type' => 'relation',
                     'model' => ProjectAdapter::class,
-                    'schema' => ProjectAdapter::getSchema()
+                    'schema' => ProjectAdapter::getSchema()                    
                 ],
                 'purchase' => [
                     'type' => 'relation',
@@ -40,11 +40,6 @@ class LeadManager implements \JsonSerializable
                     'type' => 'relation',
                     'model' => SaleAdapter::class,
                     'schema' => SaleAdapter::getSchema()
-                ],
-                'validationHistories' => [
-                    'type' => 'relation',
-                    'model' => ValidationHistoryAdapter::class,
-                    'schema' => ValidationHistoryAdapter::getSchema()
                 ]
             ];
         }
@@ -55,8 +50,7 @@ class LeadManager implements \JsonSerializable
     private ContactAdapter $contact;
     private ProjectAdapter $project;
     private PurchaseAdapter $purchase;
-    private SaleAdapter $sales;
-    private ValidationHistoryAdapter $validationHistories;
+    private SaleAdapter $sales;    
     
     public function __construct(?int $legacyLeadId = null)
     {
@@ -79,8 +73,7 @@ class LeadManager implements \JsonSerializable
         $this->contact = new ContactAdapter($this->legacyLead);
         $this->project = new ProjectAdapter($this->legacyLead);
         $this->purchase = new PurchaseAdapter($this->legacyLead);
-        $this->sales = new SaleAdapter($this->legacyLead);
-        $this->validationHistories = new ValidationHistoryAdapter($this->legacyLead);
+        $this->sales = new SaleAdapter($this->legacyLead);        
     }
     
     public function getContact(): ContactAdapter
@@ -103,10 +96,7 @@ class LeadManager implements \JsonSerializable
         return $this->sales;
     }
     
-    public function getValidationHistories(): ValidationHistoryAdapter
-    {
-        return $this->validationHistories;
-    }
+
     
     public function getLegacyLead(): LegacyLead
     {
@@ -120,7 +110,7 @@ class LeadManager implements \JsonSerializable
         $this->project->save();
         $this->purchase->save();
         $this->sales->save();
-        $this->validationHistories->save();
+
 
         // Invalidation du cache selon le pattern existant
         $result = $this->legacyLead->save();
@@ -266,8 +256,7 @@ class LeadManager implements \JsonSerializable
             'contact' => $this->contact->getData(),
             'project' => $this->project->getData(),
             'purchase' => $this->purchase->getData(),
-            'sales' => $this->sales->getData(),
-            'validationHistories' => $this->validationHistories->getData()
+            'sales' => $this->sales->getData()
         ];
     }
     

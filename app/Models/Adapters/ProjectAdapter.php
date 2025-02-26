@@ -21,12 +21,12 @@ class ProjectAdapter implements LeadComponentInterface
     {
         $this->lead = $lead;
         $this->project = new Project();
-        
+
         if ($lead !== null && !empty($lead->leadId)) {
-            // Initialiser le projet avec le leadId et campaignId pour charger les questions
+            // Initialiser le projet avec le leadId et campaignId pour charger les questions            
             $this->project = new Project([
                 'leadId' => $lead->leadId,
-                'campaignId' => $lead->campaignid
+                'campaignId' => $lead->campaignId
             ]);
         }
     }
