@@ -3,12 +3,12 @@ namespace Models;
 
 class WelcomeSmsLog extends Model
 {
-    public static $TABLE_NAME = 'welcome_sms_log';
-    public static $TABLE_INDEX = 'welcome_sms_logid';
+    public static $TABLE_NAME = 'messaging_log';
+    public static $TABLE_INDEX = 'messaging_logid';
     public static $OBJ_INDEX = 'welcomeSmsLogId';
     public static $SCHEMA = array(
         "welcomeSmsLogId" => array(
-            "field" => "welcome_sms_logid",
+            "field" => "messaging_logid",
             "fieldType" => "int",
             "type" => "int",
             "default" => null
