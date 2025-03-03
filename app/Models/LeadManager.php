@@ -29,7 +29,7 @@ class LeadManager implements \JsonSerializable
                 'project' => [
                     'type' => 'relation',
                     'model' => ProjectAdapter::class,
-                    'schema' => ProjectAdapter::getSchema()                    
+                    'schema' => ProjectAdapter::getSchema()
                 ],
                 'purchase' => [
                     'type' => 'relation',
@@ -50,7 +50,7 @@ class LeadManager implements \JsonSerializable
     private ContactAdapter $contact;
     private ProjectAdapter $project;
     private PurchaseAdapter $purchase;
-    private SaleAdapter $sales;    
+    private SaleAdapter $sales;
     
     public function __construct(?int $legacyLeadId = null)
     {
@@ -73,7 +73,7 @@ class LeadManager implements \JsonSerializable
         $this->contact = new ContactAdapter($this->legacyLead);
         $this->project = new ProjectAdapter($this->legacyLead);
         $this->purchase = new PurchaseAdapter($this->legacyLead);
-        $this->sales = new SaleAdapter($this->legacyLead);        
+        $this->sales = new SaleAdapter($this->legacyLead);
     }
     
     public function getContact(): ContactAdapter
@@ -96,8 +96,6 @@ class LeadManager implements \JsonSerializable
         return $this->sales;
     }
     
-
-    
     public function getLegacyLead(): LegacyLead
     {
         return $this->legacyLead;
@@ -110,7 +108,6 @@ class LeadManager implements \JsonSerializable
         $this->project->save();
         $this->purchase->save();
         $this->sales->save();
-
 
         // Invalidation du cache selon le pattern existant
         $result = $this->legacyLead->save();
@@ -250,14 +247,19 @@ class LeadManager implements \JsonSerializable
      * 
      * @return array
      */
-    public function jsonSerialize(): array
+    public function jsonSerialize(): mixed
     {
-        return [
+        $data = [
+            'leadId' => $this->legacyLead->leadId,
+            'createdAt' => date('Y-m-d H:i:s', $this->legacyLead->timestamp),
+            'updatedAt' => date('Y-m-d H:i:s', $this->legacyLead->update_timestamp),
             'contact' => $this->contact->getData(),
             'project' => $this->project->getData(),
             'purchase' => $this->purchase->getData(),
             'sales' => $this->sales->getData()
         ];
+        
+        return $data;
     }
     
     /**
