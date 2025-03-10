@@ -389,19 +389,10 @@ abstract class Model
      */
     public function save()
     {
-        // print_r('object to prepare for saving');
-        // print_r($this);
         $data = $this->prepareDataForSave();
-
-        $whereParameter = !empty($this->{static::$OBJ_INDEX})
-            ? [static::$TABLE_INDEX => $this->{static::$OBJ_INDEX}]
-            : [];
-            // print_r('object finalized for saving');
-            // print_r($data);
-            // print_r('whereParameter');     
-            // print_r($whereParameter);                   
-            // // die();
-        return $this->performSave($data, $whereParameter);
+        $whereParameter = !empty($this->{static::$OBJ_INDEX}) ? [static::$TABLE_INDEX => $this->{static::$OBJ_INDEX}] : [];
+        $result = $this->performSave($data, $whereParameter);
+        return $result;
     }
 
 
@@ -451,6 +442,7 @@ abstract class Model
         }
         return $result;
     }
+
     /**
      * Supprime un enregistrement de la base de données.
      * 

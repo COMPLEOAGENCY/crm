@@ -349,15 +349,7 @@ class Lead extends Model
             "fieldType" => "string",
             "type" => "string",
             "default" => null
-        ),
-        'contact' => [
-            'type' => 'relation',
-            'table' => 'lead',
-            'schema' => [
-                'phone' => ['field' => 'phone', 'type' => 'string'],
-                // Autres champs de contact si nécessaire
-            ]
-        ],
+        )
     );
 
 

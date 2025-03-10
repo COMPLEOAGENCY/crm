@@ -169,7 +169,7 @@ class ApiV2Controller extends Controller
             $id = $params['id'] ?? null;
             $limit = $params['limit'] ?? 100;
             $requestData = $this->_httpRequest->getParams();
-
+            
             // Correction de la casse de la ressource
             $resourceLower = strtolower($resource);
             if (isset(self::RESOURCE_MAPPING[$resourceLower])) {
@@ -682,10 +682,14 @@ class ApiV2Controller extends Controller
             if (!$existingModel) {
                 return [
                     'success' => false,
-                    'message' => "Ressource non trouvée"
+                    'message' => 'Ressource non trouvée'
                 ];
             }
 
+            // S'assurer que l'identifiant principal est correctement défini
+            $objIndex = $model::$OBJ_INDEX;
+            $existingModel->$objIndex = (int)$id;
+            
             // Mise à jour des champs
             foreach ($data as $key => $value) {
                 if (property_exists($existingModel, $key)) {
@@ -693,20 +697,21 @@ class ApiV2Controller extends Controller
                 }
             }
 
+            // Sauvegarde des modifications
             $result = $existingModel->save();
-
-            if (!$result) {
+            
+            if ($result) {
+                return [
+                    'success' => true,
+                    'message' => 'Ressource mise à jour',
+                    'result' => $result
+                ];
+            } else {
                 return [
                     'success' => false,
-                    'message' => "Échec de la mise à jour"
+                    'message' => 'Erreur lors de la mise à jour'
                 ];
             }
-
-            return [
-                'success' => true,
-                'message' => "Ressource mise à jour",
-                'result' => $result
-            ];
         } catch (\Exception $e) {
             return [
                 'success' => false,

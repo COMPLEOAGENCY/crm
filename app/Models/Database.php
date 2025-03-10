@@ -249,18 +249,33 @@ class Database
     public function updateOrInsert(string $table, string $tableIndex, array $whereParameters, array $sqlParameters)
     {
         $r = false;
-    
-        // Essayer de mettre à jour l'enregistrement existant
+        
+        // Essayer d'abord une mise à jour si l'ID est défini
         if (!empty($sqlParameters[$tableIndex])) {
             $result = @$this->DB::table($table)->where($whereParameters)->update($sqlParameters);
+            
             if ($result > 0) {
+                // La mise à jour a affecté des lignes, c'est un succès
                 $r = $sqlParameters[$tableIndex];
+            } else {
+                // Aucune ligne n'a été modifiée, vérifions si l'enregistrement existe
+                $exists = !empty($whereParameters) && $this->DB::table($table)->where($whereParameters)->exists();
+                
+                if ($exists) {
+                    // L'enregistrement existe mais aucune modification n'était nécessaire
+                    $r = $sqlParameters[$tableIndex];
+                }
+                // Sinon, $r reste false et on passera à l'insertion
             }
         }
-    
-        // Si la mise à jour échoue ou si le paramètre de l'index de la table est vide, essayer d'insérer un nouvel enregistrement
-        if (empty($sqlParameters[$tableIndex]) || $r === false) {
-            $sqlParameters[$tableIndex] = null;
+        
+        // Si l'ID n'est pas défini ou si la mise à jour a échoué (enregistrement inexistant)
+        if ($r === false) {
+            // Si l'ID est défini mais que l'enregistrement n'existe pas, on peut l'utiliser pour l'insertion
+            if (empty($sqlParameters[$tableIndex])) {
+                $sqlParameters[$tableIndex] = null;
+            }
+            
             $result = @$this->DB::table($table)->insertGetId($sqlParameters, $tableIndex);
             if ($result > 0) {
                 $r = $result;
