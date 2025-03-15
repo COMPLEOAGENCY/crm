@@ -78,6 +78,12 @@ class Project extends Model implements \JsonSerializable
             "fieldType" => "array",
             "type" => "array",
             "default" => array()
+        ),
+        "comments" => array(
+            "field" => "comments",
+            "fieldType" => "string",
+            "type" => "string",
+            "default" => ""
         )
     );
 
