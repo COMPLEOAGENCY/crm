@@ -30,13 +30,15 @@ CREATE TABLE IF NOT EXISTS `chat_message` (
   `delivery_timestamp` int(11) DEFAULT NULL,
   `delivery_attempts` int(11) NOT NULL DEFAULT 1,
   `delivery_error` text DEFAULT NULL,
+  `is_processed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Indique si le message a été traité par l\'IA',
   PRIMARY KEY (`chat_messageid`),
   KEY `chat_conversationid` (`chat_conversationid`),
   KEY `sender_type_sender_id` (`sender_type`,`sender_id`),
   KEY `recipient_type_recipient_id` (`recipient_type`,`recipient_id`),
   KEY `timestamp` (`timestamp`),
   KEY `is_read` (`is_read`),
-  KEY `delivery_status` (`delivery_status`)
+  KEY `delivery_status` (`delivery_status`),
+  KEY `idx_is_processed` (`is_processed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table des participants

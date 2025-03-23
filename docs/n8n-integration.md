@@ -21,6 +21,19 @@ N8N_PROCESSING_TIMEOUT="300"
 
 2. Remplacez `votre-cle-api-secrete-ici` par une clé API sécurisée et `http://localhost:5678` par l'URL de votre instance N8N.
 
+3. Exécutez le script SQL suivant pour ajouter la colonne `is_processed` à la table `chat_message` :
+
+```sql
+-- Ajout de la colonne is_processed à la table chat_message
+ALTER TABLE chat_message ADD COLUMN is_processed TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Indique si le message a été traité par l\'IA';
+
+-- Mise à jour des messages existants comme étant déjà traités
+UPDATE chat_message SET is_processed = 1 WHERE 1;
+
+-- Création d'un index pour optimiser les requêtes de recherche de messages non traités
+ALTER TABLE chat_message ADD INDEX idx_is_processed (is_processed);
+```
+
 ## Endpoints API disponibles
 
 Le CRM expose trois endpoints API pour l'intégration avec N8N :
@@ -29,7 +42,7 @@ Le CRM expose trois endpoints API pour l'intégration avec N8N :
 
 **Endpoint :** `POST /api/v2/chat/message`
 
-**Description :** Cet endpoint permet à N8N de transmettre les messages reçus des utilisateurs (via WhatsApp, SMS, etc.) au CRM.
+**Description :** Cet endpoint permet à N8N de transmettre les messages reçus des utilisateurs (via WhatsApp, SMS, etc.) au CRM. Les messages sont stockés dans une conversation avec le slug `project-{projectId}-main`.
 
 **Headers requis :**
 - `Content-Type: application/json`
@@ -60,7 +73,7 @@ Le CRM expose trois endpoints API pour l'intégration avec N8N :
 
 **Endpoint :** `GET /api/v2/chat/analyze`
 
-**Description :** Cet endpoint permet à N8N de récupérer les messages qui nécessitent une analyse par l'IA.
+**Description :** Cet endpoint permet à N8N de récupérer les messages non traités qui nécessitent une analyse par l'IA. Seuls les messages des conversations avec le slug `project-{projectId}-main` sont renvoyés.
 
 **Headers requis :**
 - `X-Api-Key: votre-cle-api-secrete-ici`
@@ -104,7 +117,7 @@ Le CRM expose trois endpoints API pour l'intégration avec N8N :
 
 **Endpoint :** `POST /api/v2/chat/response`
 
-**Description :** Cet endpoint permet à N8N de transmettre les réponses générées par l'IA au CRM.
+**Description :** Cet endpoint permet à N8N de transmettre les réponses générées par l'IA au CRM. Le message est marqué comme traité (`is_processed = 1`).
 
 **Headers requis :**
 - `Content-Type: application/json`
@@ -158,7 +171,8 @@ Voici un exemple de workflow N8N pour l'intégration avec le CRM :
 
 5. **Transmission des réponses**
    - Utiliser un nœud HTTP Request pour appeler l'endpoint `/api/v2/chat/response`
-   - Inclure les mises à jour du projet si nécessaire
+   - Inclure les mises à jour du projet si nécessaires
+   - Marquer le message comme traité
 
 6. **Envoi des réponses aux utilisateurs**
    - Configurer les nœuds appropriés pour envoyer les réponses via les canaux d'origine (WhatsApp, SMS, etc.)

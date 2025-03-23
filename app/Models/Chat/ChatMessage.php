@@ -95,6 +95,12 @@ class ChatMessage extends Model
             "fieldType" => "text",
             "type" => "string",
             "default" => null
+        ),
+        "isProcessed" => array(
+            "field" => "is_processed",
+            "fieldType" => "tinyint",
+            "type" => "int",
+            "default" => 0
         )
     );
 

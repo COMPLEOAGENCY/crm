@@ -123,7 +123,7 @@ class AIChatApiController extends ApiV2Controller
         }
         
         // Créer ou récupérer la conversation
-        $conversationSlug = "project-{$payload['project_id']}-qualification";
+        $conversationSlug = "project-{$payload['project_id']}-main";
         $conversation = $this->chatService->getConversationBySlug($conversationSlug);
         
         if (!$conversation) {
@@ -131,7 +131,7 @@ class AIChatApiController extends ApiV2Controller
             $this->chatService->createConversation(
                 'project',
                 $payload['project_id'],
-                "Qualification du projet #{$payload['project_id']}",
+                "Conversation principale du projet #{$payload['project_id']}",
                 [
                     ['type' => 'user', 'id' => $payload['sender_id']]
                 ]
@@ -191,6 +191,10 @@ class AIChatApiController extends ApiV2Controller
             // Récupérer la conversation
             $conversation = $this->chatService->getConversationById($message->chatConversationId);
             if (!$conversation || $conversation->contextType !== 'project') continue;
+            
+            // Vérifier si c'est une conversation principale (avec le slug project-X-main)
+            $slug = $conversation->slug;
+            if (!preg_match('/^project-(\d+)-main$/', $slug)) continue;
             
             // Récupérer l'historique des messages
             $messages = $this->chatService->getMessages($conversation->chatConversationId, 50);
