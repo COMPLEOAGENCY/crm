@@ -528,4 +528,57 @@ abstract class Model
         }
         return $converted;
     }
+
+    /**
+     * Méthode magique pour définir des propriétés dynamiques
+     * 
+     * Permet d'ajouter des propriétés qui ne sont pas définies dans le schéma
+     * en les stockant dans un tableau spécial pour les propriétés dynamiques.
+     * 
+     * @param string $name Nom de la propriété
+     * @param mixed $value Valeur de la propriété
+     * @return void
+     */
+    public function __set(string $name, $value): void
+    {
+        // Vérifier si la propriété est définie dans le schéma
+        if (isset(static::$SCHEMA[$name])) {
+            // Si oui, utiliser le type défini dans le schéma
+            $this->{$name} = $value;
+            if (isset(static::$SCHEMA[$name]["type"]) && static::$SCHEMA[$name]["type"] !== "mixed") {
+                settype($this->{$name}, static::$SCHEMA[$name]["type"]);
+            }
+        } else {
+            // Si non, permettre l'ajout de propriétés dynamiques
+            // en les stockant dans un tableau spécial pour les propriétés dynamiques
+            if (!isset($this->_dynamicProperties)) {
+                $this->_dynamicProperties = [];
+            }
+            $this->_dynamicProperties[$name] = $value;
+        }
+    }
+
+    /**
+     * Méthode magique pour récupérer des propriétés dynamiques
+     * 
+     * Permet d'accéder aux propriétés qui ne sont pas définies dans le schéma
+     * mais qui ont été ajoutées dynamiquement.
+     * 
+     * @param string $name Nom de la propriété
+     * @return mixed Valeur de la propriété ou null si elle n'existe pas
+     */
+    public function __get(string $name)
+    {
+        // Vérifier si la propriété est définie dans le schéma
+        if (isset(static::$SCHEMA[$name])) {
+            return $this->{$name} ?? null;
+        }
+        
+        // Vérifier si la propriété existe dans les propriétés dynamiques
+        if (isset($this->_dynamicProperties) && isset($this->_dynamicProperties[$name])) {
+            return $this->_dynamicProperties[$name];
+        }
+        
+        return null;
+    }
 }

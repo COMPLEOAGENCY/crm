@@ -86,6 +86,16 @@ try{
     $App->all("/webhook/receive")
         ->setAction("Webhook@receive");
 
+    // Routes pour l'intégration du chat avec N8N
+    $App->post("/api/v2/chat/message")
+        ->setAction("Api\\AIChatApiController@storeUserMessage");
+        
+    $App->get("/api/v2/chat/analyze")
+        ->setAction("Api\\AIChatApiController@getMessagesToAnalyze");
+        
+    $App->post("/api/v2/chat/response")
+        ->setAction("Api\\AIChatApiController@storeAIResponse");
+
     // Route template vide
     $App->get("/admin/blanck")
         ->setAction("AdminController@blanck");
@@ -131,7 +141,43 @@ $App->post("/apiv2/{resource}/{id}[/]?")
     ->where('resource', '[a-zA-Z]+')
     ->where('id', '[0-9]+');
 
-    $Response   = $App->run();        
+// Routes pour l'API de Chat
+$App->get("/api/chat/conversations")
+    ->setAction("Api\\ChatApiController@getConversations");
+
+$App->get("/api/chat/conversations/{id}")
+    ->setAction("Api\\ChatApiController@getConversation")
+    ->where('id', '[a-zA-Z0-9-]+');
+
+$App->post("/api/chat/conversations")
+    ->setAction("Api\\ChatApiController@createConversation");
+
+$App->post("/api/chat/conversations/{id}/messages")
+    ->setAction("Api\\ChatApiController@sendMessage")
+    ->where('id', '[a-zA-Z0-9-]+');
+
+$App->get("/api/chat/conversations/{id}/messages")
+    ->setAction("Api\\ChatApiController@getMessages")
+    ->where('id', '[a-zA-Z0-9-]+');
+
+$App->put("/api/chat/messages/{id}/read")
+    ->setAction("Api\\ChatApiController@markMessageAsRead")
+    ->where('id', '[0-9]+');
+
+$App->post("/api/chat/conversations/{id}/participants")
+    ->setAction("Api\\ChatApiController@addParticipant")
+    ->where('id', '[a-zA-Z0-9-]+');
+
+$App->delete("/api/chat/conversations/{id}/participants/{participantId}")
+    ->setAction("Api\\ChatApiController@removeParticipant")
+    ->where('id', '[a-zA-Z0-9-]+')
+    ->where('participantId', '[0-9]+');
+
+// Routes pour les webhooks du chat (à implémenter plus tard)
+$App->post("/webhook/chat")
+    ->setAction("Webhook@receive");
+
+$Response   = $App->run();        
 
 
 } catch (\Throwable $e ){
