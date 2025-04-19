@@ -352,7 +352,36 @@ class Lead extends Model
         )
     );
 
-
+    /**
+     * Recherche un lead par son numéro de téléphone
+     * 
+     * @param string $phone Numéro de téléphone à rechercher
+     * @return Lead|null Lead trouvé ou null si aucun lead trouvé
+     */
+    public static function findByPhone($phone)
+    {
+        // Normaliser le numéro de téléphone (supprimer espaces, tirets, etc.)
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        
+        // Rechercher dans les champs phone et mobile
+        $db = Database::instance();
+        $results = $db->fetch(static::$TABLE_NAME, 1, [
+            'phone' => $phone,
+        ]);
+        
+        // Si aucun résultat avec le premier champ, essayer avec phone2
+        if (empty($results)) {
+            $results = $db->fetch(static::$TABLE_NAME, 1, [
+                'phone2' => $phone,
+            ]);
+        }
+        
+        if (!empty($results[0])) {
+            return new static((array)$results[0]);
+        }
+        
+        return null;
+    }
 
     public function __construct($data = [])
     {

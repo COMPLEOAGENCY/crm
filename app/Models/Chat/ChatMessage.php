@@ -24,8 +24,8 @@ class ChatMessage extends Model
         "senderType" => array(
             "field" => "sender_type",
             "fieldType" => "string",
-            "type" => "enum",
-            "values" => ["user", "lead", "professional"],
+            "type" => "string",
+            "values" => ["user", "lead", "professional", "system", "ai"],
             "default" => "user"
         ),
         "senderId" => array(
@@ -37,7 +37,7 @@ class ChatMessage extends Model
         "recipientType" => array(
             "field" => "recipient_type",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["user", "lead", "professional", "all"],
             "default" => "all"
         ),
@@ -52,6 +52,13 @@ class ChatMessage extends Model
             "fieldType" => "text",
             "type" => "string",
             "default" => ""
+        ),
+        "messageType" => array(
+            "field" => "message_type",
+            "fieldType" => "string",
+            "type" => "string",
+            "values" => ["text", "image", "file", "audio", "video", "location", "contact", "system"],
+            "default" => "text"
         ),
         "timestamp" => array(
             "field" => "timestamp",
@@ -71,11 +78,11 @@ class ChatMessage extends Model
             "type" => "int",
             "default" => null
         ),
-        "deliveryStatus" => array(
-            "field" => "delivery_status",
+        "status" => array(
+            "field" => "status",
             "fieldType" => "string",
-            "type" => "enum",
-            "values" => ["sent", "delivered", "failed"],
+            "type" => "string",
+            "values" => ["sent", "delivered", "read", "failed"],
             "default" => "sent"
         ),
         "deliveryTimestamp" => array(
@@ -130,7 +137,7 @@ class ChatMessage extends Model
      */
     public function updateDeliveryStatus($status, $error = null)
     {
-        $this->deliveryStatus = $status;
+        $this->status = $status;
         $this->deliveryTimestamp = time();
         
         if ($status === 'failed') {
@@ -150,7 +157,7 @@ class ChatMessage extends Model
      */
     public function retry()
     {
-        if ($this->deliveryStatus !== 'failed') {
+        if ($this->status !== 'failed') {
             return false; // Pas besoin de réessayer
         }
         

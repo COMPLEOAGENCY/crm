@@ -24,7 +24,7 @@ class ChatParticipant extends Model
         "participantType" => array(
             "field" => "participant_type",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["user", "lead", "professional"],
             "default" => "user"
         ),
@@ -49,14 +49,14 @@ class ChatParticipant extends Model
         "status" => array(
             "field" => "status",
             "fieldType" => "string",
-            "type" => "enum",
-            "values" => ["active", "inactive", "left"],
+            "type" => "string",
+            "values" => ["active", "inactive", "blocked"],
             "default" => "active"
         ),
         "notificationPreference" => array(
             "field" => "notification_preference",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["all", "mentions", "none"],
             "default" => "all"
         )

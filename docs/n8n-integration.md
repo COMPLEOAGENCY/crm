@@ -38,105 +38,118 @@ ALTER TABLE chat_message ADD INDEX idx_is_processed (is_processed);
 
 Le CRM expose trois endpoints API pour l'intégration avec N8N :
 
-### 1. Stocker un message utilisateur
+### 1. Envoyer un message utilisateur
 
-**Endpoint :** `POST /api/v2/chat/message`
+**Endpoint :** `POST /api/ai-chat/message`
 
-**Description :** Cet endpoint permet à N8N de transmettre les messages reçus des utilisateurs (via WhatsApp, SMS, etc.) au CRM. Les messages sont stockés dans une conversation avec le slug `project-{projectId}-main`.
+**Description :** Cet endpoint permet à N8N d'envoyer un message d'un lead au CRM.
 
-**Headers requis :**
-- `Content-Type: application/json`
-- `X-Api-Key: votre-cle-api-secrete-ici`
+**Authentification :** Clé API requise dans l'en-tête `X-API-KEY`
 
 **Payload :**
+
 ```json
 {
-  "project_id": 123,
-  "sender_id": 456,
-  "content": "Message de l'utilisateur",
-  "attachments": [] // Optionnel
+  "phone": "+33612345678",         // Obligatoire: Numéro de téléphone du lead
+  "content": "Texte du message",   // Obligatoire: Contenu du message
+  "first_name": "Jean",            // Optionnel: Prénom du lead
+  "last_name": "Dupont",           // Optionnel: Nom du lead
+  "email": "jean@example.com",     // Optionnel: Email du lead
+  "attachments": []                // Optionnel: Pièces jointes (URLs)
 }
 ```
 
 **Réponse :**
+
 ```json
 {
   "success": true,
   "message": "Succès",
   "status": "success",
-  "conversation_id": 789,
-  "message_id": 101112
+  "conversation_id": 123,
+  "message_id": 456
 }
 ```
 
 ### 2. Récupérer les messages à analyser
 
-**Endpoint :** `GET /api/v2/chat/analyze`
+**Endpoint :** `GET /api/ai-chat/messages-to-analyze`
 
-**Description :** Cet endpoint permet à N8N de récupérer les messages non traités qui nécessitent une analyse par l'IA. Seuls les messages des conversations avec le slug `project-{projectId}-main` sont renvoyés.
+**Description :** Cet endpoint permet à N8N de récupérer les messages non traités pour analyse par l'IA.
 
-**Headers requis :**
-- `X-Api-Key: votre-cle-api-secrete-ici`
+**Authentification :** Clé API requise dans l'en-tête `X-API-KEY`
 
 **Réponse :**
+
 ```json
 {
   "success": true,
   "message": "Succès",
   "tasks": [
     {
-      "task_id": "task_60a8f9e3b7c5d",
-      "message_id": 101112,
-      "conversation_id": 789,
-      "project_id": 123,
-      "project_data": {
-        "id": 123,
-        "title": "Titre du projet",
-        "description": "Description du projet",
-        "status": "en_cours"
+      "task_id": "task_5f8a4b2c3d",
+      "message_id": 456,
+      "conversation_id": 123,
+      "lead_id": 789,
+      "lead_data": {
+        "id": 789,
+        "first_name": "Jean",
+        "last_name": "Dupont",
+        "phone": "+33612345678"
       },
-      "message_history": [
+      "projects": [
         {
-          "id": 101112,
-          "sender_type": "user",
-          "sender_id": 456,
-          "content": "Message de l'utilisateur",
-          "timestamp": "2023-01-01 12:00:00",
-          "is_read": false
+          "id": 101,
+          "title": "Rénovation salle de bain",
+          "status": "en_cours"
         }
       ],
-      "sender_type": "user",
-      "sender_id": 456,
-      "content": "Message de l'utilisateur"
+      "message_history": [
+        {
+          "id": 455,
+          "sender_type": "system",
+          "content": "Bonjour, comment puis-je vous aider ?",
+          "timestamp": "2025-03-23T10:30:00Z"
+        },
+        {
+          "id": 456,
+          "sender_type": "lead",
+          "content": "J'ai une question sur mon projet",
+          "timestamp": "2025-03-23T10:35:00Z"
+        }
+      ],
+      "content": "J'ai une question sur mon projet"
     }
   ]
 }
 ```
 
-### 3. Stocker une réponse de l'IA
+### 3. Envoyer une réponse de l'IA
 
-**Endpoint :** `POST /api/v2/chat/response`
+**Endpoint :** `POST /api/ai-chat/ai-response`
 
-**Description :** Cet endpoint permet à N8N de transmettre les réponses générées par l'IA au CRM. Le message est marqué comme traité (`is_processed = 1`).
+**Description :** Cet endpoint permet à N8N d'envoyer une réponse générée par l'IA.
 
-**Headers requis :**
-- `Content-Type: application/json`
-- `X-Api-Key: votre-cle-api-secrete-ici`
+**Authentification :** Clé API requise dans l'en-tête `X-API-KEY`
 
 **Payload :**
+
 ```json
 {
-  "conversation_id": 789,
-  "content": "Réponse de l'IA",
-  "project_id": 123, // Optionnel
-  "project_updates": { // Optionnel
+  "conversation_id": 123,
+  "content": "Voici la réponse de l'IA",
+  "identified_project_id": 101,    // Optionnel: ID du projet identifié par l'IA
+  "project_updates": {             // Optionnel: Mises à jour du projet
     "status": "qualifie",
-    "budget": 5000
+    "custom_fields": {
+      "budget": "10000"
+    }
   }
 }
 ```
 
 **Réponse :**
+
 ```json
 {
   "success": true,
@@ -145,97 +158,49 @@ Le CRM expose trois endpoints API pour l'intégration avec N8N :
 }
 ```
 
+## Algorithme d'association des messages aux projets
+
+Lorsqu'un message est reçu avec uniquement un numéro de téléphone, le système utilise l'algorithme suivant pour déterminer à quel projet il est associé :
+
+1. Recherche du lead par numéro de téléphone
+2. Si un seul projet est associé au lead, pas d'ambiguïté
+3. Si plusieurs projets sont associés au lead :
+   - Chercher celui avec un message sans réponse du lead
+   - Sinon, utiliser le projet le plus récent
+4. Si aucun projet n'est trouvé, créer une conversation "inbox" pour le lead
+
+## Structure des conversations
+
+Les conversations sont identifiées par un slug unique :
+
+- `project-{projectId}-main` : Conversation principale d'un projet
+- `lead-{leadId}-inbox` : Boîte de réception pour un lead sans projet associé
+
+## Traitement des messages
+
+1. N8N intercepte les messages des utilisateurs (WhatsApp, SMS, etc.)
+2. N8N envoie le message au CRM via l'API
+3. Le CRM détermine le projet associé et stocke le message
+4. N8N récupère les messages non traités
+5. L'IA analyse les messages et génère des réponses
+6. N8N envoie les réponses au CRM et aux utilisateurs
+
 ## Configuration de N8N
 
-### Workflow de base
+Pour configurer N8N :
 
-Voici un exemple de workflow N8N pour l'intégration avec le CRM :
+1. Créer un workflow pour intercepter les messages
+2. Configurer un nœud HTTP Request pour envoyer les messages au CRM
+3. Configurer un nœud HTTP Request pour récupérer les messages à analyser
+4. Configurer un nœud pour l'analyse par l'IA
+5. Configurer un nœud HTTP Request pour envoyer les réponses au CRM
+6. Configurer un nœud pour envoyer les réponses aux utilisateurs
 
-1. **Réception des messages** (WhatsApp, SMS, etc.)
-   - Configurer un trigger pour recevoir les messages des utilisateurs
-   - Extraire les informations nécessaires (ID du projet, ID de l'expéditeur, contenu)
+## Sécurité
 
-2. **Transmission au CRM**
-   - Utiliser un nœud HTTP Request pour appeler l'endpoint `/api/v2/chat/message`
-   - Configurer les headers avec la clé API
-   - Formater le payload selon les exigences
-
-3. **Récupération des messages à analyser**
-   - Configurer un trigger temporisé (toutes les X minutes)
-   - Utiliser un nœud HTTP Request pour appeler l'endpoint `/api/v2/chat/analyze`
-   - Traiter la réponse pour extraire les tâches
-
-4. **Analyse par l'IA**
-   - Pour chaque tâche, envoyer le contenu à l'IA (OpenAI, etc.)
-   - Utiliser l'historique des messages et les données du projet pour contextualiser
-
-5. **Transmission des réponses**
-   - Utiliser un nœud HTTP Request pour appeler l'endpoint `/api/v2/chat/response`
-   - Inclure les mises à jour du projet si nécessaires
-   - Marquer le message comme traité
-
-6. **Envoi des réponses aux utilisateurs**
-   - Configurer les nœuds appropriés pour envoyer les réponses via les canaux d'origine (WhatsApp, SMS, etc.)
-
-## Exemple de configuration N8N
-
-Voici un exemple de configuration JSON pour un workflow N8N :
-
-```json
-{
-  "nodes": [
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 5
-            }
-          ]
-        }
-      },
-      "name": "Vérifier les nouveaux messages",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1,
-      "position": [
-        250,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://votre-crm.com/api/v2/chat/analyze",
-        "options": {
-          "headers": {
-            "X-Api-Key": "votre-cle-api-secrete-ici"
-          }
-        }
-      },
-      "name": "Récupérer les messages",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [
-        450,
-        300
-      ]
-    }
-  ],
-  "connections": {
-    "Vérifier les nouveaux messages": {
-      "main": [
-        [
-          {
-            "node": "Récupérer les messages",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  }
-}
-```
+- Toutes les requêtes API doivent inclure une clé API valide dans l'en-tête `X-API-KEY`
+- Les communications entre N8N et le CRM doivent être chiffrées (HTTPS)
+- Les numéros de téléphone doivent être normalisés avant traitement
 
 ## Bonnes pratiques
 

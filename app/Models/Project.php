@@ -139,6 +139,29 @@ class Project extends Model implements \JsonSerializable
     }
 
     /**
+     * Recherche les projets associés à un lead
+     * 
+     * @param int $leadId ID du lead
+     * @return array Liste des projets associés au lead
+     */
+    public static function findByLeadId($leadId)
+    {
+        $db = Database::instance();
+        $results = $db->fetch('project', null, [
+            'lead_id' => $leadId
+        ], null, null, 'created_at', 'desc');
+        
+        $projects = array();
+        if (!empty($results)) {
+            foreach ($results as $row) {
+                $projects[] = new static((array)$row);
+            }
+        }
+        
+        return $projects;
+    }
+
+    /**
      * Récupère la campagne associée au projet
      * 
      * @return Campaign|null

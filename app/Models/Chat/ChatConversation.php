@@ -24,7 +24,7 @@ class ChatConversation extends Model
         "contextType" => array(
             "field" => "context_type",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["lead", "project", "user", "custom"],
             "default" => "lead"
         ),
@@ -43,7 +43,7 @@ class ChatConversation extends Model
         "status" => array(
             "field" => "status",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["active", "closed", "archived"],
             "default" => "active"
         ),

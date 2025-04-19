@@ -2,6 +2,7 @@
 namespace Controllers\Api;
 
 use Framework\QueueManager;
+use Framework\HttpRequest;
 use Framework\HttpResponse;
 use Services\ChatService;
 use Models\Project;
@@ -24,9 +25,9 @@ class AIChatApiController extends ApiV2Controller
     /**
      * Constructeur du contrôleur
      */
-    public function __construct()
+    public function __construct(HttpRequest $httpRequest, HttpResponse $httpResponse)
     {
-        parent::__construct();
+        parent::__construct($httpRequest, $httpResponse);
         $this->chatService = ChatService::instance();
         $this->queueManager = QueueManager::instance();
     }
@@ -118,22 +119,92 @@ class AIChatApiController extends ApiV2Controller
         $payload = $this->getRequestPayload();
         
         // Vérifier les données requises
-        if (empty($payload['project_id']) || empty($payload['sender_id']) || empty($payload['content'])) {
-            return $this->respondBadRequest(['error' => 'Champs requis manquants']);
+        if (empty($payload['phone']) || empty($payload['content'])) {
+            return $this->respondBadRequest(['error' => 'Champs requis manquants (phone, content)']);
+        }
+        
+        // Normaliser le numéro de téléphone (supprimer espaces, tirets, etc.)
+        $phone = preg_replace('/[^0-9+]/', '', $payload['phone']);
+        
+        // Rechercher le lead par numéro de téléphone
+        $lead = \Models\Lead::findByPhone($phone);
+        
+        // Si aucun lead trouvé, créer un lead temporaire
+        if (!$lead) {
+            $lead = new \Models\Lead();
+            $lead->phone = $phone;
+            $lead->email = $payload['email'] ?? '';
+            $lead->firstName = $payload['first_name'] ?? 'Contact';
+            $lead->lastName = $payload['last_name'] ?? 'WhatsApp/SMS';
+            $lead->save();
+        }
+        
+        // Déterminer le projet associé
+        $projectId = null;
+        
+        // Récupérer tous les projets associés au lead
+        $projects = \Models\Project::findByLeadId($lead->leadId);
+        
+        if (count($projects) === 1) {
+            // Si un seul projet, pas d'ambiguïté
+            $projectId = $projects[0]->projectId;
+        } elseif (count($projects) > 1) {
+            // Si plusieurs projets, on cherche celui avec un message sans réponse
+            $projectWithPendingMessage = null;
+            $mostRecentProject = null;
+            $mostRecentDate = null;
+            
+            foreach ($projects as $project) {
+                // Vérifier si c'est le projet le plus récent
+                if ($mostRecentDate === null || $project->createdAt > $mostRecentDate) {
+                    $mostRecentDate = $project->createdAt;
+                    $mostRecentProject = $project;
+                }
+                
+                // Vérifier s'il y a un message sans réponse
+                $conversationSlug = "project-{$project->projectId}-main";
+                $conversation = $this->chatService->getConversationBySlug($conversationSlug);
+                
+                if ($conversation) {
+                    $messages = $this->chatService->getMessages($conversation->chatConversationId, 10);
+                    
+                    // Vérifier si le dernier message est du système et sans réponse du lead
+                    if (count($messages) > 0 && ($messages[0]->senderType === 'system' || $messages[0]->senderType === 'user')) {
+                        $projectWithPendingMessage = $project;
+                        break;
+                    }
+                }
+            }
+            
+            // Utiliser le projet avec message en attente, sinon le plus récent
+            $projectId = $projectWithPendingMessage ? $projectWithPendingMessage->projectId : $mostRecentProject->projectId;
+        }
+        
+        // Si aucun projet trouvé, créer une conversation basée sur le lead
+        if ($projectId === null) {
+            $conversationSlug = "lead-{$lead->leadId}-inbox";
+            $contextType = 'lead';
+            $contextId = $lead->leadId;
+            $title = "Inbox de {$lead->firstName} {$lead->lastName}";
+        } else {
+            // Sinon, utiliser une conversation de projet
+            $conversationSlug = "project-{$projectId}-main";
+            $contextType = 'project';
+            $contextId = $projectId;
+            $title = "Conversation principale du projet #{$projectId}";
         }
         
         // Créer ou récupérer la conversation
-        $conversationSlug = "project-{$payload['project_id']}-main";
         $conversation = $this->chatService->getConversationBySlug($conversationSlug);
         
         if (!$conversation) {
             // Créer une nouvelle conversation
             $this->chatService->createConversation(
-                'project',
-                $payload['project_id'],
-                "Conversation principale du projet #{$payload['project_id']}",
+                $contextType,
+                $contextId,
+                $title,
                 [
-                    ['type' => 'user', 'id' => $payload['sender_id']]
+                    ['type' => 'lead', 'id' => $lead->leadId]
                 ]
             );
             $conversation = $this->chatService->getConversationBySlug($conversationSlug);
@@ -143,22 +214,24 @@ class AIChatApiController extends ApiV2Controller
         $message = new \Models\Chat\ChatMessage();
         $this->chatService->sendMessage(
             $conversation->chatConversationId,
-            'user',
-            $payload['sender_id'],
+            'lead',
+            $lead->leadId,
             $payload['content'],
             'all',
             null,
             $payload['attachments'] ?? []
         );
         
-        // IMPORTANT: Ici, nous ne déclenchons pas de notification externe
-        // car c'est N8N qui gère l'envoi des messages aux utilisateurs
+        // Ne pas envoyer de notification pour les messages provenant de N8N
+        // Ils seront traités par l'IA
         
-        return $this->respondOK([
-            'status' => 'success', 
+        return [
+            'success' => true,
+            'message' => 'Succès',
+            'status' => 'success',
             'conversation_id' => $conversation->chatConversationId,
-            'message_id' => $message->chatMessageId ?? 0
-        ]);
+            'message_id' => $message->chatMessageId
+        ];
     }
     
     /**

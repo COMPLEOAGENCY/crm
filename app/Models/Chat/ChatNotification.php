@@ -30,7 +30,7 @@ class ChatNotification extends Model
         "notificationType" => array(
             "field" => "notification_type",
             "fieldType" => "string",
-            "type" => "enum",
+            "type" => "string",
             "values" => ["new_message", "mention", "file_shared", "participant_joined", "participant_left"],
             "default" => "new_message"
         ),
