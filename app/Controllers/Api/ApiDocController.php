@@ -14,9 +14,9 @@ class ApiDocController extends Controller
             'parameters' => [
                 'page' => ['type' => 'int', 'description' => 'Numéro de page (pagination)', 'required' => false],
                 'limit' => ['type' => 'int', 'description' => 'Nombre d\'éléments par page', 'required' => false],
-                'sort' => ['type' => 'string', 'description' => 'Champ de tri', 'required' => false],
+                'sort' => ['type' => 'string', 'description' => 'Champ de tri (peut être un champ simple ou imbriqué comme contact[timestamp])', 'required' => false],
                 'order' => ['type' => 'string', 'description' => 'Direction du tri (asc/desc)', 'required' => false],
-                'filter' => ['type' => 'object', 'description' => 'Filtres à appliquer', 'required' => false]
+                'filter' => ['type' => 'object', 'description' => 'Filtres à appliquer (supporte les formats simples, complexes et imbriqués)', 'required' => false]
             ]
         ],
         'GET /api/{model}/{id}' => [
@@ -400,14 +400,29 @@ class ApiDocController extends Controller
                         'explanation' => 'Récupère le lead avec l\'ID 123'
                     ],
                     [
-                        'description' => 'Filtre sur date avec opérateur',
-                        'request' => 'GET /apiv2/leadmanager?filter={"createdAt":{"operator":">","value":"2025-01-01"}}',
-                        'explanation' => 'Récupère les leads créés après le 1er janvier 2025'
+                        'description' => 'Filtre direct avec opérateur',
+                        'request' => 'GET /apiv2/leadmanager?filter={"field":"timestamp","operator":">","value":0}',
+                        'explanation' => 'Récupère les leads créés après le timestamp 0'
                     ],
                     [
                         'description' => 'Filtre sur champ imbriqué (contact)',
-                        'request' => 'GET /apiv2/leadmanager?filter={"contact[email]":{"operator":"LIKE","value":"%@gmail.com"}}',
+                        'request' => 'GET /apiv2/leadmanager?filter={"field":"contact[email]","operator":"LIKE","value":"%@gmail.com"}',
                         'explanation' => 'Récupère les leads dont l\'email du contact se termine par @gmail.com'
+                    ],
+                    [
+                        'description' => 'Filtre complexe avec conditions AND/OR',
+                        'request' => 'GET /apiv2/leadmanager?filter={"AND":[{"field":"timestamp","operator":">","value":0},{"OR":[{"field":"project[status]","operator":"=","value":"valid"},{"field":"project[status]","operator":"=","value":"deversoir"}]}]}',
+                        'explanation' => 'Récupère les leads créés après le timestamp 0 ET dont le statut du projet est soit "valid" soit "deversoir"'
+                    ],
+                    [
+                        'description' => 'Filtre avec opérateur de négation',
+                        'request' => 'GET /apiv2/leadmanager?filter={"field":"project[status]","operator":"!=","value":"invalid"}',
+                        'explanation' => 'Récupère les leads dont le statut du projet n\'est pas "invalid"'
+                    ],
+                    [
+                        'description' => 'Tri sur champ imbriqué',
+                        'request' => 'GET /apiv2/leadmanager?sort=contact[timestamp]&order=desc&limit=5',
+                        'explanation' => 'Récupère 5 leads triés par date de création du contact en ordre décroissant'
                     ],
                     [
                         'description' => 'Filtre sur questions de campagne',

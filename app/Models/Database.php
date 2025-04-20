@@ -132,10 +132,24 @@ class Database
         $query = $this->DB::table($table);
 
         if (!empty($sqlParameters)) {
-            // Filtrer les paramètres pour gérer les `IS NULL` et `IS NOT NULL`
+            // Filtrer les paramètres pour gérer les `IS NULL`, `IS NOT NULL` et les opérateurs logiques
             foreach ($sqlParameters as $key => $parameter) {
+                // Gestion des opérateurs logiques OR
+                if (is_array($parameter) && isset($parameter[0]) && $parameter[0] === 'OR' && isset($parameter[1]) && is_array($parameter[1])) {
+                    // Créer une clause OR avec les sous-conditions
+                    $query->where(function($q) use ($parameter) {
+                        $orConditions = $parameter[1];
+                        foreach ($orConditions as $i => $cond) {
+                            if (isset($cond[0], $cond[1], $cond[2])) {
+                                $method = $i === 0 ? 'where' : 'orWhere';
+                                $q->$method($cond[0], $cond[1], $cond[2]);
+                            }
+                        }
+                    });
+                    unset($sqlParameters[$key]);
+                }
                 // Gestion des formats sous forme de tableaux avec `IS` et `IS NOT`
-                if (is_array($parameter) && isset($parameter[1]) && isset($parameter[2])) {
+                elseif (is_array($parameter) && isset($parameter[1]) && isset($parameter[2])) {
                     if (strtoupper($parameter[1]) === 'IS' && $parameter[2] === null) {
                         $query->whereNull($parameter[0]);
                         unset($sqlParameters[$key]);
@@ -155,7 +169,9 @@ class Database
             }
 
             // Appliquer les autres conditions SQL restantes
-            $query->where($sqlParameters);
+            if (!empty($sqlParameters)) {
+                $query->where($sqlParameters);
+            }
         }
 
         if (!empty($jsonParameters)) {

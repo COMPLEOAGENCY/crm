@@ -29,20 +29,24 @@ use Classes\Logger;
  * - order : Direction du tri (asc/desc)
  * - filter : Filtres au format JSON
  * 
- * Exemples de filtrage pour LeadManager (nouvelle syntaxe recommandée) :
+ * Exemples de filtrage pour LeadManager :
  * 
  * 1. Filtre simple sur un champ :
- *    ?filter={"field":"leadId","operator":"=","value":123}
+ *    ?filter={"leadId": 123}
  * 
  * 2. Filtre avec opérateur :
- *    ?filter={"field":"createdAt","operator":">","value":"2025-01-01"}
+ *    ?filter={"createdAt": {"operator": ">", "value": "2025-01-01"}}
  * 
  * 3. Filtre sur champ imbriqué (relation) :
- *    ?filter={"field":"contact[phone]","operator":"=","value":"0612345678"}
- *    ?filter={"field":"contact[email]","operator":"LIKE","value":"%@gmail.com"}
+ *    ?filter={"contact[phone]": "0612345678"}
+ *    ?filter={"contact[email]": {"operator": "LIKE", "value": "%@gmail.com"}}
  * 
- * 4. Filtres multiples (AND/OR) :
- *    ?filter={"AND":[{"field":"contact[firstName]","operator":"=","value":"John"},{"field":"project[address][city]","operator":"=","value":"Paris"},{"field":"sales[price]","operator":">","value":1000}]}
+ * 4. Filtres multiples :
+ *    ?filter={
+ *      "contact[firstName]": "John",
+ *      "project[address][city]": "Paris",
+ *      "sales[price]": {"operator": ">", "value": 1000}
+ *    }
  * 
  * Exemples de tri pour LeadManager :
  * 
@@ -93,15 +97,6 @@ use Classes\Logger;
  *     - saleId (int)
  *     - timestamp (datetime)
  *     - price (float)
- * 
- * Exemples de filtres spéciaux :
- * 
- * 5. Filtre NULL :
- *    ?filter={"field":"contact[email]","operator":"IS","value":null}
- *    ?filter={"field":"contact[email]","operator":"IS NOT","value":null}
- * 
- * 6. Filtre complexe AND/OR :
- *    ?filter={"AND":[{"field":"timestamp","operator":">","value":0},{"OR":[{"field":"project[status]","operator":"=","value":"valid"},{"field":"project[status]","operator":"=","value":"deversoir"}]}]}
  * 
  * Réponse type :
  * {
@@ -317,37 +312,11 @@ class ApiV2Controller extends Controller
         $limit = min(1000, max(1, (int)$limit));
         
         // Tri
-        $sortField = $params['sort'] ?? null;
+        $orderBy = $params['sort'] ?? null;
         $direction = strtolower($params['order'] ?? 'asc');
         
         if (!in_array($direction, self::VALID_SORT_DIRECTIONS)) {
             $direction = 'asc';
-        }
-        
-        // Traitement du champ de tri pour les champs imbriqués
-        $orderBy = $sortField;
-        if ($sortField && isset($params['resource'])) {
-            // Récupérer le modèle
-            $resourceLower = strtolower($params['resource']);
-            if (isset(self::RESOURCE_MAPPING[$resourceLower])) {
-                $resource = self::RESOURCE_MAPPING[$resourceLower];
-                $modelClass = "\\Models\\{$resource}";
-                if (class_exists($modelClass)) {
-                    $model = new $modelClass();
-                    // Traiter le champ de tri comme un champ de filtre pour la conversion
-                    if (preg_match('/^(\w+)\[(\w+)\]$/', $sortField, $matches)) {
-                        $fieldInfo = $this->parseNestedField($matches[1], $matches[2], $model);
-                        if ($fieldInfo['success']) {
-                            $orderBy = $fieldInfo['field'];
-                        }
-                    } else {
-                        $fieldInfo = $this->parseSimpleField($sortField, $model);
-                        if ($fieldInfo['success']) {
-                            $orderBy = $fieldInfo['field'];
-                        }
-                    }
-                }
-            }
         }
 
         return [
@@ -366,7 +335,6 @@ class ApiV2Controller extends Controller
      * - Filtres simples : {"field": "value"}
      * - Filtres avec opérateur : {"field": {"operator": "=", "value": "test"}}
      * - Filtres imbriqués : {"relation[field]": "value"}
-     * - Format direct : {"field": "project[status]", "operator": "=", "value": "valid"}
      * 
      * @param mixed $filterData Données de filtre (JSON ou array)
      * @param object $model Instance du modèle pour validation
@@ -385,22 +353,6 @@ class ApiV2Controller extends Controller
             if (!is_array($raw)) {
                 return ['success' => false, 'message' => 'Le filtre doit être un objet JSON valide'];
             }
-            
-            // Format direct : {"field": "project[status]", "operator": "=", "value": "valid"}
-            if (isset($raw['field'], $raw['operator'], $raw['value'])) {
-                $p = $this->buildFilterParameter(
-                    $raw['field'],
-                    ['operator' => $raw['operator'], 'value' => $raw['value']],
-                    $model
-                );
-                if ($p) {
-                    Logger::debug("Paramètre de filtre direct généré", ['parameter' => $p]);
-                    return ['success' => true, 'parameters' => [$p]];
-                } else {
-                    return ['success' => false, 'message' => 'Filtre invalide'];
-                }
-            }
-            
             // Déterminer les entrées et la logique
             if (isset($raw['AND']) && is_array($raw['AND'])) {
                 $entries = $raw['AND'];

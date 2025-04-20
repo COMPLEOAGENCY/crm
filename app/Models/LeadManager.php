@@ -209,12 +209,44 @@ class LeadManager implements \JsonSerializable
 
         // Vérifier si c'est un champ imbriqué
         if (preg_match('/^(\w+)\[(\w+)\]$/', $orderBy, $matches)) {
-            return self::extractFieldFromSchema($matches[1], $matches[2]);
+            $relation = $matches[1];
+            $field = $matches[2];
+            
+            // Récupérer l'adaptateur correspondant à la relation
+            $adapterClass = "\\Models\\Adapters\\" . ucfirst($relation) . "Adapter";
+            
+            if (class_exists($adapterClass)) {
+                $schema = $adapterClass::getSchema();
+                
+                if (isset($schema[$field])) {
+                    $fieldConfig = $schema[$field];
+                    
+                    // Déterminer la table à utiliser
+                    $table = 'lead'; // Table par défaut
+                    
+                    // Essayer de récupérer la table depuis la classe du modèle correspondant
+                    $relatedModelClass = "\\Models\\" . ucfirst($relation);
+                    if (class_exists($relatedModelClass)) {
+                        if (defined($relatedModelClass . '::$TABLE_NAME')) {
+                            $table = $relatedModelClass::$TABLE_NAME;
+                        }
+                    }
+                    
+                    return $table . '.' . $fieldConfig['field'];
+                }
+            }
+            
+            // Fallback à l'ancienne méthode si nécessaire
+            return self::extractFieldFromSchema($relation, $field);
         }
 
         // Champ simple
         $schema = self::getSchema();
-        return isset($schema[$orderBy]) ? $schema[$orderBy]['field'] : null;
+        if (isset($schema[$orderBy])) {
+            return isset($schema[$orderBy]['field']) ? $schema[$orderBy]['field'] : $orderBy;
+        }
+        
+        return $orderBy; // Retourner le champ tel quel si non trouvé dans le schéma
     }
 
     private static function extractFieldFromSchema(string $relation, string $field): ?string

@@ -140,12 +140,14 @@
 
                             <h4>3. Tri</h4>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?sort=name&order=desc
-GET /apiv2/administration?sort=label&order=asc</code></pre>
-                        </div>
-                        <div class="col-md-6">
+GET /apiv2/administration?sort=label&order=asc
+GET /apiv2/leadmanager?sort=contact[timestamp]&order=desc</code></pre>
+                            <p><small class="text-muted">Note: Le tri peut être effectué sur des champs imbriqués en utilisant la notation <code>relation[champ]</code></small></p>
+
                             <h4>4. Filtres simples</h4>
-                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"name":"test"}
-GET /apiv2/administration?filter={"label":"config"}</code></pre>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"field":"name","operator":"=","value":"test"}
+GET /apiv2/administration?filter={"field":"label","operator":"=","value":"config"}</code></pre>
+                            <p><small class="text-muted">Note: Format recommandé pour les filtres simples</small></p>
 
                             <h4>5. Création (CREATE)</h4>
                             <p>Pour créer une nouvelle ressource, utilisez une requête POST.</p>
@@ -167,22 +169,50 @@ Content-Type: application/json
     "field1": "nouvelle valeur",
     "field2": "nouvelle valeur"
 }</code></pre>
-
+                        </div>
+                        <div class="col-md-6">
                             <h4>7. Suppression (DELETE)</h4>
                             <p>Pour supprimer une ressource, utilisez une requête DELETE avec l'ID de la ressource.</p>
                             <pre class="bg-light p-3 rounded"><code>DELETE /apiv2/{ressource}/{id}</code></pre>
                             <p>La suppression retourne un code 204 en cas de succès.</p>
 
-                            <h4>8. Filtres avec opérateurs</h4>
+                            <h4>8. Filtres avec opérateurs (nouvelle syntaxe)</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"field":"value","operator":"LIKE","value":"%test%"}
+GET /apiv2/administration?filter={"field":"administrationid","operator":">","value":"5"}</code></pre>
+                            <p><small class="text-success">Utilisez ce format pour tous les filtres avec opérateur.</small></p>
+
+                            <h5 class="mt-3 text-warning">Ancienne syntaxe (dépréciée)</h5>
                             <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"LIKE","value":"%test%"}}
 GET /apiv2/administration?filter={"administrationid":{"operator":">","value":"5"}}</code></pre>
+                            <p><small class="text-warning">Ce format est obsolète et sera retiré à terme. Merci d'utiliser la nouvelle syntaxe.</small></p>
 
                             <h4>9. Filtres NULL</h4>
-                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?filter={"value":{"operator":"IS","value":null}}
-GET /apiv2/administration?filter={"value":{"operator":"IS NOT","value":null}}</code></pre>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/leadmanager?filter={"field":"contact[email]","operator":"IS","value":null}
+GET /apiv2/leadmanager?filter={"field":"contact[email]","operator":"IS NOT","value":null}</code></pre>
+                            <p><small class="text-muted">Note: Utilisez cette syntaxe pour filtrer les valeurs NULL ou non NULL</small></p>
 
-                            <h4>10. Combinaison de paramètres</h4>
-                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?page=1&limit=10&sort=name&order=desc&filter={"value":{"operator":"LIKE","value":"%test%"}}</code></pre>
+                            <h4>10. Filtres avec opérateurs (format direct)</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/leadmanager?filter={"field":"project[status]","operator":"=","value":"valid"}
+GET /apiv2/leadmanager?filter={"field":"contact[email]","operator":"LIKE","value":"%@gmail.com"}</code></pre>
+                            <p><small class="text-muted">Note: Ce format permet de spécifier directement le champ, l'opérateur et la valeur</small></p>
+
+                            <h4>11. Filtres sur champs imbriqués (nouvelle syntaxe)</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/leadmanager?filter={"field":"contact[timestamp]","operator":">","value":0}
+GET /apiv2/leadmanager?filter={"field":"project[status]","operator":"=","value":"valid"}</code></pre>
+                            <p><small class="text-success">Utilisez toujours ce format pour les champs imbriqués.</small></p>
+
+                            <h5 class="mt-3 text-warning">Ancienne syntaxe (dépréciée)</h5>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/leadmanager?filter={"contact[timestamp]":{"operator":">","value":0}}
+GET /apiv2/leadmanager?filter={"project[status]":{"operator":"=","value":"valid"}}</code></pre>
+                            <p><small class="text-warning">Ce format est obsolète et sera retiré à terme. Merci d'utiliser la nouvelle syntaxe.</small></p>
+
+                            <h4>12. Filtres complexes avec AND/OR</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/leadmanager?filter={"AND":[{"field":"timestamp","operator":">","value":0},{"OR":[{"field":"project[status]","operator":"=","value":"valid"},{"field":"project[status]","operator":"=","value":"deversoir"}]}]}</code></pre>
+                            <p><small class="text-muted">Note: Utilisez les opérateurs logiques AND et OR pour combiner plusieurs conditions</small></p>
+
+                            <h4>13. Combinaison de paramètres</h4>
+                            <pre class="bg-light p-3 rounded"><code>GET /apiv2/administration?page=1&limit=10&sort=name&order=desc&filter={"field":"value","operator":"LIKE","value":"%test%"}</code></pre>
+                            <p><small class="text-muted">Note: Vous pouvez combiner pagination, tri et filtrage dans une même requête</small></p>
                         </div>
                     </div>
                 </div>
