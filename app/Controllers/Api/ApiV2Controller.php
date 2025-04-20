@@ -131,9 +131,9 @@ class ApiV2Controller extends Controller
 
     /** @var array Mapping des noms de ressources pour gérer la casse */
     private const RESOURCE_MAPPING = [
-        'leadmanager' => 'LeadManager',
-        'project' => 'Project',
-        // Ajouter d'autres mappings si nécessaire
+        'leadmanager' => 'LeadManager'
+
+        // Ajout explicite de tous les adapters principaux
     ];
 
     private $cacheManager;
