@@ -54,7 +54,7 @@ class Contact extends Model
             "field" => "country",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => "FR"
         ),        
         "phone" => array(
             "field" => "phone",
