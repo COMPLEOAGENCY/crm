@@ -176,11 +176,41 @@ class ApiV2Controller extends Controller
             $limit = $params['limit'] ?? 100;
             $requestData = $this->_httpRequest->getParams();
             
-            // Correction de la casse de la ressource
-            $resourceLower = strtolower($resource);
-            if (isset(self::RESOURCE_MAPPING[$resourceLower])) {
-                $resource = self::RESOURCE_MAPPING[$resourceLower];
+            // Résolution robuste de la ressource
+            $resourceMapping = self::RESOURCE_MAPPING;
+            $modelClass = null;
+            // 1. Mapping exact
+            if (isset($resourceMapping[$resource])) {
+                $modelClass = $resourceMapping[$resource];
             }
+            // 2. Mapping en minuscules
+            elseif (isset($resourceMapping[strtolower($resource)])) {
+                $modelClass = $resourceMapping[strtolower($resource)];
+            }
+            // 3. Mapping ucfirst(strtolower())
+            elseif (isset($resourceMapping[ucfirst(strtolower($resource))])) {
+                $modelClass = $resourceMapping[ucfirst(strtolower($resource))];
+            }
+            // 4. Mapping ucfirst()
+            elseif (isset($resourceMapping[ucfirst($resource)])) {
+                $modelClass = $resourceMapping[ucfirst($resource)];
+            }
+            // 5. Directement le nom passé
+            elseif (class_exists("\\Models\\" . $resource)) {
+                $modelClass = $resource;
+            }
+            // 6. Directement ucfirst($resource)
+            elseif (class_exists("\\Models\\" . ucfirst($resource))) {
+                $modelClass = ucfirst($resource);
+            }
+
+            if (!$modelClass || !class_exists("\\Models\\" . $modelClass)) {
+                return [
+                    'success' => false,
+                    'message' => "Ressource inconnue: {$resource}"
+                ];
+            }
+            $resource = $modelClass;
 
             // Déterminer la méthode en fonction de la requête HTTP et des paramètres
             $httpMethod = strtolower($this->_httpRequest->getMethod());
