@@ -50,6 +50,12 @@ class Contact extends Model
             "type" => "string",
             "default" => ""
         ),
+        "country" => array(
+            "field" => "country",
+            "fieldType" => "string",
+            "type" => "string",
+            "default" => ""
+        ),        
         "phone" => array(
             "field" => "phone",
             "fieldType" => "string",
