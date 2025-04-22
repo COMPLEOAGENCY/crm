@@ -1,6 +1,9 @@
 <?php
 namespace Models;
 
+use Classes\Phone;
+use libphonenumber\PhoneNumberFormat;
+
 class Contact extends Model
 {
     public static $TABLE_NAME = 'lead';
@@ -133,5 +136,31 @@ class Contact extends Model
     public function __construct(array $data = [])
     {
         parent::__construct($data);
+    }
+
+    /**
+     * Surcharge de la méthode magique __get pour retourner un objet Phone pour les propriétés phone et phone2
+     * 
+     * @param string $name Nom de la propriété
+     * @return mixed Valeur de la propriété ou objet Phone pour phone/phone2
+     */
+    public function __get($name)
+    {
+        if ($name === 'country' && !empty($this->country)) {
+            return substr($this->country, 0, 2);
+        }
+
+        // Si on demande phone, retourner un objet Phone
+        if ($name === 'phone' && !empty($this->phone)) {
+            return new Phone($this->phone, $this->country ?? 'FR');
+        }
+        
+        // Si on demande phone2, retourner un objet Phone
+        if ($name === 'phone2' && !empty($this->phone2)) {
+            return new Phone($this->phone2, $this->country ?? 'FR');
+        }
+        
+        // Pour toutes les autres propriétés, utiliser le comportement par défaut
+        return parent::__get($name);
     }
 }
