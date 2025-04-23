@@ -2,7 +2,6 @@
 namespace Models;
 
 use Classes\Phone;
-use libphonenumber\PhoneNumberFormat;
 
 class Contact extends Model
 {
@@ -93,31 +92,31 @@ class Contact extends Model
             "field" => "utm_source",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => null
         ),
         "utm_medium" => array(
             "field" => "utm_medium",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => null
         ),
         "utm_campaign" => array(
             "field" => "utm_campaign",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => null
         ),
         "utm_content" => array(
             "field" => "utm_content",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => null
         ),
         "utm_term" => array(
             "field" => "utm_term",
             "fieldType" => "string",
             "type" => "string",
-            "default" => ""
+            "default" => null
         ),
         "url" => array(
             "field" => "url",
@@ -146,21 +145,82 @@ class Contact extends Model
      */
     public function __get($name)
     {
-        if ($name === 'country' && !empty($this->country)) {
-            return substr($this->country, 0, 2);
+        // Obtenir d'abord la valeur depuis le parent
+        $value = parent::__get($name);
+        
+        // Traitement spécial pour phone et phone2
+        if ($name === 'phone' && !empty($value)) {
+            return new Phone($value, parent::__get('country'));
         }
+        
+        if ($name === 'phone2' && !empty($value)) {
+            return new Phone($value, parent::__get('country'));
+        }
+        
+        // Pour toutes les autres propriétés, retourner la valeur du parent
+        return $value;
+    }
+    
+    /**
+     * Surcharge de la méthode get pour traiter les numéros de téléphone
+     * 
+     * @param int $id L'identifiant du contact à récupérer
+     * @return Contact|bool L'instance du contact hydraté ou false en cas d'échec
+     */
+    public function get(int $id)
+    {
+        // Appel à la méthode parente pour récupérer le contact
+        $result = parent::get($id);
+        
+        // Si la récupération a réussi, on applique nos transformations
+        if ($result !== false) {
+            // Si phone2 est vide, on y met le numéro principal au format international
+            if (!empty($this->phone)) {
+                $phoneValue = parent::__get('phone');
+                $countryValue = parent::__get('country');
+                $this->phone2 = Phone::format($phoneValue, $countryValue);
+            }
+            
+            // Si phone2_val est vide et phone_val n'est pas vide, on duplique phone_val vers phone2_val
+            if (empty($this->phone2_val) && !empty($this->phone_val)) {
+                $this->phone2_val = $this->phone_val;
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Surcharge de la méthode getList pour traiter les numéros de téléphone dans les résultats
+     * 
+     * @param int|null $limit Limite le nombre de résultats
+     * @param array|null $sqlParameters Paramètres SQL pour filtrer les résultats
+     * @param array|null $jsonParameters Paramètres JSON pour filtrer les résultats
+     * @param string|null $groupBy Colonne pour le GROUP BY
+     * @param string|null $orderBy Colonne pour le ORDER BY
+     * @param string $direction Direction du tri (asc/desc)
+     * @return array Liste des contacts avec les modifications demandées
+     */
+    public function getList($limit = null, array $sqlParameters = null, array $jsonParameters = null, $groupBy = null, $orderBy = null, $direction = 'asc')
+    {
+        // Appel à la méthode parente pour récupérer la liste
+        $results = parent::getList($limit, $sqlParameters, $jsonParameters, $groupBy, $orderBy, $direction);
+        
+        // Traiter chaque résultat
+        foreach ($results as &$result) {
+            // Si phone2 est vide, on y met le numéro principal au format international
+            if (!empty($result->phone)) {
+                $result->phone2 = Phone::format($result->phone, $result->country);
+            }
+            
+            // Si phone2_val est vide et phone_val n'est pas vide, on duplique phone_val vers phone2_val
+            if (empty($result->phone2_val) && !empty($result->phone_val)) {
+                $result->phone2_val = $result->phone_val;
+            }
+        }
+        // Traitement terminé
 
-        // Si on demande phone, retourner un objet Phone
-        if ($name === 'phone' && !empty($this->phone)) {
-            return new Phone($this->phone, $this->country ?? 'FR');
-        }
-        
-        // Si on demande phone2, retourner un objet Phone
-        if ($name === 'phone2' && !empty($this->phone2)) {
-            return new Phone($this->phone2, $this->country ?? 'FR');
-        }
-        
-        // Pour toutes les autres propriétés, utiliser le comportement par défaut
-        return parent::__get($name);
+
+        return $results;
     }
 }

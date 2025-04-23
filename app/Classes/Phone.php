@@ -6,7 +6,7 @@ use libphonenumber\PhoneNumberFormat;
 use libphonenumber\NumberParseException;
 
 /**
- * Classe pour gérer les numéros de téléphone avec formatage international
+ * Classe Phone - Permet le chaînage sur une propriété de téléphone
  */
 class Phone
 {
@@ -16,26 +16,46 @@ class Phone
     private $number;
     
     /**
-     * @var string Le code pays par défaut
+     * @var string Le code pays
      */
-    private $defaultCountry;
+    private $country;
     
     /**
      * Constructeur
      * 
      * @param string $number Le numéro de téléphone
-     * @param string $defaultCountry Le code pays par défaut
+     * @param string $country Le code pays (format 2 ou 3 lettres)
      */
-    public function __construct($number, $defaultCountry = 'FR')
+    public function __construct($number, $country = 'FR')
     {
         $this->number = $number;
-        $this->defaultCountry = $defaultCountry;
+        $this->country = $this->normalizeCountryCode($country);
     }
     
     /**
-     * Conversion en chaîne
+     * Normalise un code pays (convertit 3 lettres en 2 lettres)
      * 
-     * @return string Le numéro de téléphone brut
+     * @param string $country Code pays à normaliser
+     * @return string Code pays normalisé
+     */
+    private function normalizeCountryCode($country)
+    {
+        if (empty($country)) {
+            return 'FR';
+        }
+        
+        // Convertir le code pays si nécessaire (3 lettres -> 2 lettres)
+        if (strlen($country) === 3) {
+            return substr($country, 0, 2);
+        }
+        
+        return $country;
+    }
+    
+    /**
+     * Conversion en chaîne - retourne le numéro brut
+     * 
+     * @return string
      */
     public function __toString()
     {
@@ -43,12 +63,52 @@ class Phone
     }
     
     /**
-     * Récupère le numéro au format international
+     * Format E164 (ex: +33612345678)
      * 
-     * @param int $format Format de sortie (E164, INTERNATIONAL, NATIONAL ou RFC3966)
+     * @return string
+     */
+    public function e164()
+    {
+        return $this->formatNumber(PhoneNumberFormat::E164);
+    }
+    
+    /**
+     * Format international (ex: +33 6 12 34 56 78)
+     * 
+     * @return string
+     */
+    public function international()
+    {
+        return $this->formatNumber(PhoneNumberFormat::INTERNATIONAL);
+    }
+    
+    /**
+     * Format national (ex: 06 12 34 56 78)
+     * 
+     * @return string
+     */
+    public function national()
+    {
+        return $this->formatNumber(PhoneNumberFormat::NATIONAL);
+    }
+    
+    /**
+     * Format RFC3966 (ex: tel:+33-6-12-34-56-78)
+     * 
+     * @return string
+     */
+    public function rfc3966()
+    {
+        return $this->formatNumber(PhoneNumberFormat::RFC3966);
+    }
+    
+    /**
+     * Formate le numéro selon le format spécifié
+     * 
+     * @param int $format Format de sortie
      * @return string Numéro formaté ou numéro original en cas d'erreur
      */
-    public function getInternational($format = PhoneNumberFormat::E164)
+    private function formatNumber($format)
     {
         if (empty($this->number)) {
             return '';
@@ -56,17 +116,14 @@ class Phone
         
         try {
             $phoneUtil = PhoneNumberUtil::getInstance();
-            $numberProto = $phoneUtil->parse($this->number, $this->defaultCountry);
+            $numberProto = $phoneUtil->parse($this->number, $this->country);
             
-            // Vérifier si le numéro est valide
             if ($phoneUtil->isValidNumber($numberProto)) {
                 return $phoneUtil->format($numberProto, $format);
             }
             
-            // Si le numéro n'est pas valide, retourner le numéro original
             return $this->number;
         } catch (NumberParseException $e) {
-            // En cas d'erreur, retourner le numéro original
             return $this->number;
         }
     }
@@ -84,7 +141,7 @@ class Phone
         
         try {
             $phoneUtil = PhoneNumberUtil::getInstance();
-            $numberProto = $phoneUtil->parse($this->number, $this->defaultCountry);
+            $numberProto = $phoneUtil->parse($this->number, $this->country);
             return $phoneUtil->isValidNumber($numberProto);
         } catch (NumberParseException $e) {
             return false;
@@ -92,25 +149,39 @@ class Phone
     }
     
     /**
-     * Récupère le code pays du numéro
+     * Récupère le code pays détecté du numéro
      * 
-     * @return string|null Code pays ou null si invalide
+     * @return string
      */
-    public function getCountryCode()
+    public function country()
     {
         if (empty($this->number)) {
-            return null;
+            return $this->country;
         }
         
         try {
             $phoneUtil = PhoneNumberUtil::getInstance();
-            $numberProto = $phoneUtil->parse($this->number, $this->defaultCountry);
+            $numberProto = $phoneUtil->parse($this->number, $this->country);
             if ($phoneUtil->isValidNumber($numberProto)) {
                 return $phoneUtil->getRegionCodeForNumber($numberProto);
             }
-            return null;
+            return $this->country;
         } catch (NumberParseException $e) {
-            return null;
+            return $this->country;
         }
+    }
+    
+    /**
+     * Méthode statique pour formater un numéro sans créer d'instance
+     * 
+     * @param string $number Le numéro de téléphone
+     * @param string $country Le code pays
+     * @param int $format Format de sortie
+     * @return string Numéro formaté
+     */
+    public static function format($number, $country = 'FR', $format = PhoneNumberFormat::E164)
+    {
+        $phone = new self($number, $country);
+        return $phone->formatNumber($format);
     }
 }

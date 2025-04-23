@@ -124,8 +124,14 @@ abstract class Model
         $obj = $strict ? [] : $this;
 
         foreach (static::$SCHEMA as $property => $propertySet) {
-            if($data[$propertySet['field']]){
+            if(isset($data[$propertySet['field']])){
                 $value = $data[$propertySet['field']];
+                
+                // Convertir les chaînes "NULL" en valeur null réelle
+                if ($value === "NULL" || $value === "null") {
+                    $value = null;
+                }
+                
                 $value = $this->handleTypeConversion($value, $propertySet);
             } else {
                 $value = $propertySet["default"] ?? null;
@@ -149,8 +155,15 @@ abstract class Model
      */
     private function handleTypeConversion($value, array $propertySet = [])
     {
-        if ($value === null) { return; }
-        if(isset($propertySet['fieldType']) && isset($propertySet['fieldType'])){
+        // Si la valeur est null, retourner null directement
+        if ($value === null) { return null; }
+        
+        // Convertir les chaînes "NULL" en valeur null réelle
+        if ($value === "NULL" || $value === "null") {
+            return null;
+        }
+        
+        if(isset($propertySet['fieldType']) && isset($propertySet['type'])){
             if($propertySet['fieldType'] == $propertySet['type']){
                 return $value;
             }
@@ -211,6 +224,11 @@ abstract class Model
     {
         // Si la valeur est null, on retourne directement
         if ($v === null) {
+            return null;
+        }
+        
+        // Traiter les chaînes "NULL" comme des valeurs null
+        if (is_string($v) && ($v == "NULL" || $v == "null")) {
             return null;
         }
     
@@ -367,10 +385,36 @@ abstract class Model
      */
     private function processResults(array $results): array
     {
+        // Précalcul des champs avec valeur par défaut NULL pour optimisation
+        static $nullDefaultFields = null;
+        if ($nullDefaultFields === null) {
+            $nullDefaultFields = [];
+            foreach (static::$SCHEMA as $property => $propertySet) {
+                if (isset($propertySet['default']) && $propertySet['default'] === null) {
+                    $nullDefaultFields[$propertySet['field']] = $property;
+                }
+            }
+        }
         
         $processedResults = [];
         foreach ($results as $result) {
-            $processedResults[] = $this->hydrate((array)$result, true);
+            $resultArray = (array)$result;
+            
+            // Traitement optimisé des valeurs
+            foreach ($resultArray as $key => $value) {
+                // Traitement des chaînes "NULL"
+                if ($value === "NULL" || $value === "null") {
+                    $resultArray[$key] = null;
+                    continue;
+                }
+                
+                // Traitement des chaînes vides uniquement pour les champs avec default=null
+                if ($value === "" && isset($nullDefaultFields[$key])) {
+                    $resultArray[$key] = null;
+                }
+            }
+            
+            $processedResults[] = $this->hydrate($resultArray, true);
         }
         return $processedResults;
     }
