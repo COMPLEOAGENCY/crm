@@ -448,12 +448,23 @@ abstract class Model
     private function prepareDataForSave(): array
     {
         $data = [];
+        
         foreach ($this as $k => $v) {
+            // Ignorer les clés vides ou commencant par _ (propriétés internes)
+            if ($k === '' || strpos($k, '_') === 0) {
+                continue;
+            }
+            
+            // Ignorer les tableaux vides
+            if (is_array($v) && empty($v)) {
+                continue;
+            }
+            
             if (array_key_exists($k, static::$SCHEMA)) {
-                // echo '<li>convert '.$k.' from '.static::$SCHEMA[$k]['type'].' to '.static::$SCHEMA[$k]['fieldType'].'<br/>';
                 $data[static::$SCHEMA[$k]['field']] = $this->convertType($v, static::$SCHEMA[$k]['type'], static::$SCHEMA[$k]['fieldType']);
             }
         }
+        
         return $data;
     }
 

@@ -112,3 +112,5 @@ legacy/todo/Admin.php
 legacy/todo/redis_explore.blade.php
 legacy/todo/redis_info.blade.php
 composer.lock
+*.lock
+composer.lock

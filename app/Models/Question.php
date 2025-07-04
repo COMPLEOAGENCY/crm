@@ -74,11 +74,35 @@ class Question extends Model
             "type" => "string",
             "default" => ""
         ),
+        "mandatory" => array(
+            "field" => "mandatory",
+            "fieldType" => "enum",
+            "type" => "string",
+            "default" => "yes"
+        ),
+        "ai" => array(
+            "field" => "ai",
+            "fieldType" => "enum",
+            "type" => "string",
+            "default" => "no"
+        ),
+        "show" => array(
+            "field" => "show",
+            "fieldType" => "enum",
+            "type" => "string",
+            "default" => "yes"
+        ),
         "status" => array(
             "field" => "statut",
             "fieldType" => "enum",
             "type" => "string",
             "default" => "on"
+        ),
+        "shopId" => array(
+            "field" => "shopId",
+            "fieldType" => "int",
+            "type" => "int",
+            "default" => 0
         )
     );
 

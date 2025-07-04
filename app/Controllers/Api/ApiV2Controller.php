@@ -812,7 +812,12 @@ class ApiV2Controller extends Controller
             
             // Mise à jour des champs
             foreach ($data as $key => $value) {
-                if (property_exists($existingModel, $key)) {
+                // Vérifier que la clé n'est pas vide et qu'elle existe dans le modèle
+                if ($key !== '' && property_exists($existingModel, $key)) {
+                    // Si la valeur est un tableau vide, la convertir en NULL
+                    if (is_array($value) && empty($value)) {
+                        $value = null;
+                    }
                     $existingModel->$key = $value;
                 }
             }
