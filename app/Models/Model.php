@@ -461,6 +461,11 @@ abstract class Model
             }
             
             if (array_key_exists($k, static::$SCHEMA)) {
+                // Si le champ associé est null, cela signifie que la propriété ne doit pas être persistée directement
+                // (ex: relations ou collections comme "questions"). On l'ignore donc.
+                if (static::$SCHEMA[$k]['field'] === null) {
+                    continue;
+                }
                 $data[static::$SCHEMA[$k]['field']] = $this->convertType($v, static::$SCHEMA[$k]['type'], static::$SCHEMA[$k]['fieldType']);
             }
         }

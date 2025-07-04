@@ -118,7 +118,12 @@ class Meta extends Model
                 'meta_table_data',
                 'data_id',
                 ['data_id' => $existing->data_id],
-                ['data_val' => $value]
+                [
+                    'table_id' => $tableId,
+                    'data_row' => $rowId,
+                    'type_id' => $typeId,
+                    'data_val' => $value
+                ]
             );
         } else {
             // Insertion
@@ -177,6 +182,18 @@ class Meta extends Model
             ->where(['table_nom' => $tableName])
             ->first();
         
+        if ($result) {
+            return $result->table_id;
+        }
+        // La table n’existe pas encore : on la crée
+        $db->updateOrInsert('meta_tables', 'table_id', [], [
+            'table_nom' => $tableName
+        ]);
+        // Recharger pour obtenir l'ID (updateOrInsert peut renvoyer bool)
+        $result = $db->buildQuery('meta_tables')
+            ->where(['table_nom' => $tableName])
+            ->first();
+
         return $result ? $result->table_id : false;
     }
 
@@ -197,6 +214,23 @@ class Meta extends Model
             ])
             ->first();
         
+        if ($result) {
+            return $result->type_id;
+        }
+
+        // Le type n’existe pas : on le crée
+        $db->updateOrInsert('meta_type', 'type_id', [], [
+            'table_id' => $tableId,
+            'type_nom' => $label
+        ]);
+        // Recharger pour obtenir l'ID
+        $result = $db->buildQuery('meta_type')
+            ->where([
+                'type_nom' => $label,
+                'table_id' => $tableId
+            ])
+            ->first();
+
         return $result ? $result->type_id : false;
     }
 }
