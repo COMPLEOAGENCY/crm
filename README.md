@@ -8,6 +8,8 @@
 
 ## Présentation
 
+> **Note :** Cette documentation concerne la partie moderne de l'application 2CRM, située dans le répertoire `/src`.
+
 Le CRM Compleo est une solution complète de gestion de la relation client, développée avec le Framework Compleo. Cette application PHP moderne suit une architecture MVC (Modèle-Vue-Contrôleur) et intègre les meilleures pratiques de développement.
 
 Pour plus de détails sur le framework utilisé, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
