@@ -4,7 +4,113 @@
 
 @section('custom-css')
 @parent {{-- Pour garder les scripts existants --}}
-<!-- <link rel="stylesheet" href="{{ asset('assets/css/custom.css') }}"> -->
+<style>
+    .modern-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .modern-header {
+            padding: 1.5rem;
+        }
+        
+        .modern-header h1 {
+            font-size: 1.75rem;
+        }
+        
+        .card-header h5 {
+            font-size: 1.1rem;
+        }
+        
+        .card-footer .btn {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .col-md-6 {
+            margin-bottom: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .modern-header {
+            padding: 1rem;
+        }
+        
+        .modern-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .card-footer {
+            padding: 1rem;
+        }
+        
+        .card-footer .d-flex {
+            justify-content: center !important;
+        }
+        
+        .card-footer .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    /* Gap utility for flexbox */
+    .gap-2 {
+        gap: 0.5rem;
+    }
+    .modern-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .modern-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+        margin-bottom: 20px;
+    }
+    .modern-card .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px 20px;
+        font-weight: 600;
+    }
+    .modern-card .card-body {
+        padding: 20px;
+    }
+.modern-header p {
+    opacity: 0.9;
+    margin-bottom: 0;
+}
+.header-icon {
+    font-size: 2.5rem;
+    margin-right: 20px;
+}
+.modern-card {
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-bottom: 20px;
+}
+.modern-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    padding: 15px 20px;
+    font-weight: 600;
+}
+.modern-card .card-body {
+    padding: 20px;
+}
+</style>
 @endsection
 
 @section('menu')
@@ -12,19 +118,35 @@
 @endsection
 
 @section('content')
-<div class="col-12 mt-3 mb-5 page-header">
-    <h1>{{ $title }}</h1>
-</div>
+
+    {{-- Header moderne --}}
+
+    <div class="modern-header">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-person-gear header-icon"></i>
+            <div>
+                <h1>{{ $title }}</h1>
+                <p>Gestion complète du compte utilisateur</p>
+            </div>
+        </div>
+    </div>
+
 
 {{-- Inclusion des messages --}}
 @include('admin.messages')
     
 {{-- Inclusion du menu utilisateur --}}
 
-<form class="form-horizontal col-12" id="user" method="POST" autocomplete="off">
+<form class="form-horizontal" id="user" method="POST" autocomplete="off">
 
         <div class="row">
             <div class="col-md-6">
+                {{-- Card moderne pour les détails du compte --}}
+                <div class="card modern-card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-person-badge-fill me-2"></i>Détails du compte</h5>
+                    </div>
+                    <div class="card-body">
                 @include('admin.form.select', [
                     'label' => 'Shopid (n° de compte dans la boutique)',
                     'id' => 'shopId',
@@ -489,6 +611,22 @@
                     'selected' => $user->statut ?? 'on',
                     'defaultOption' => false
                 ]))
+                    </div>
+                    <!-- Boutons d'action dans le card -->
+                    <div class="card-footer bg-light border-top">
+                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                            <button type="submit" name="submit" value="valid" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Valider
+                            </button>
+                            <button type="submit" name="submit" value="synchro" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-repeat"></i> Synchroniser
+                            </button>
+                            <button type="submit" name="submit" value="delete" onclick="return confirm('Êtes-vous sûr ?');" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             @php
             if(isset($user->type) && $user->type == 'client') {
@@ -498,14 +636,6 @@
             }   
             @endphp
             
-        </div>
-
-        <div class="form-group row">
-            <div class="col-12">
-                <button type="submit" name="submit" value="valid" class="btn btn-primary">Valider</button>
-                <button type="submit" name="submit" value="synchro" class="btn btn-outline-secondary">Synchroniser avec la boutique</button>
-                <button type="submit" name="submit" value="delete" onclick="return confirm('Êtes-vous sûr ?');" class="btn btn-danger">Supprimer</button>
-            </div>
         </div>
 
 </form>

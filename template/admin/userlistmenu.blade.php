@@ -1,6 +1,9 @@
 <?php // path: src/template/admin/userlistmenu.blade.php ?>
 <form class="w-100 mb-4" id="balance" method="POST">
-<div class="card card-default">
+<div class="card modern-card">
+    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>Filtres de recherche</h5>
+    </div>
     <div class="card-body">
 
         <div class="form-group row">
@@ -56,8 +59,8 @@
         </div>
     </div>
     <div class="card-footer">
-        <button type="submit" name="submit" value="search" class="btn btn-primary"><i class="icon-search icon-white"></i> Rechercher</button>
-        <button type="submit" name="submit" value="refresh" class="btn btn-default">Rafraichir</button>
+        <button type="submit" name="submit" value="search" class="btn btn-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 30px; border-radius: 25px;"><i class="bi bi-search me-1"></i> Rechercher</button>
+        <button type="submit" name="submit" value="refresh" class="btn btn-secondary" style="padding: 10px 30px; border-radius: 25px;"><i class="bi bi-arrow-clockwise me-1"></i> Rafraîchir</button>
     </div>
 </div>
 </form>

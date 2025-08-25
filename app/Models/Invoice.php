@@ -49,18 +49,6 @@ class Invoice extends Model
             "type" => "string",
             "default" => null
         ),
-        "paid" => array(
-            "field" => "paid",
-            "fieldType" => "string",
-            "type" => "string",
-            "default" => null
-        ),
-        "methodid" => array(
-            "field" => "methodid",
-            "fieldType" => "string",
-            "type" => "string",
-            "default" => null
-        ),
         "credits" => array(
             "field" => "credits",
             "fieldType" => "string",
@@ -92,14 +80,18 @@ class Invoice extends Model
         $invoices = $this->getList(
             1000000, 
             [
-                'timestamp' => ['>', $timestamp],  // Factures créées après $timestamp
-                'userid' => $userid               // Factures appartenant à l'utilisateur $userid
+                ['timestamp', '>', $timestamp],  // Factures créées après $timestamp
+                ['userid', '=', $userid]         // Factures appartenant à l'utilisateur $userid
             ]
         );
 
         if(is_countable($invoices)){
             foreach ($invoices as $invoice) {
-                $total_paid += $invoice->paid;
+                // Calculer le montant payé pour cette facture via invoice_payment
+                $invoicePayment = new \Models\InvoicePayment();
+                $paid = $invoicePayment->sumPaid($invoice->invoiceId);
+                
+                $total_paid += $paid;
                 $total_ht += $invoice->ht;
                 $total_tva += $invoice->tva;
                 $total_credits += $invoice->credits;

@@ -436,6 +436,83 @@ public static function getSchema(): array
 
 Pour plus de détails sur l'implémentation des modèles et leurs relations, consultez la [documentation du Framework Compleo](https://github.com/COMPLEOAGENCY/Framework).
 
+## Mises à jour récentes (août 2025)
+
+Ces changements sont effectifs dans le code courant et documentés pour usage immédiat.
+
+- __API v2 Validation Leads__
+  - Endpoint `GET/POST /api/v2/validation/run` → `Controllers\\Api\\LeadValidationController::run()` → `Services\\LeadValidationService::run()`
+  - Endpoint `GET/POST /api/v2/validation/pending` → `Controllers\\Api\\LeadValidationController::loadPendingLeads()` → `Services\\LeadValidationService::loadPendingLeads()`
+  - Définition des routes dans `src/public/index.php`
+
+- __Service UserCampaignService__ (nouveau) dans `src/app/Services/UserCampaignService.php`
+  - Méthodes: `getUserCommands($userId)`, `getCommandWebservices($usercampaignId)`, `parseProducts($campaignName)`, `extractReference($campaignName)`, `getAllCommands($limit, $offset, $filters)`, `getCommand($usercampaignId)`
+  - Utilisé par `Controllers\\AdminController` pour afficher les commandes et leur webservices dans l’édition utilisateur et pour la liste des campagnes clients
+
+- __AdminController__
+  - Injection d’un `UserCampaignService` (`$this->userCampaignService = new \\Services\\UserCampaignService()`)
+  - Nouvelles actions/écrans:
+    - `clientcampaignList` (route `/admin/clientcampaign/list`) avec filtrage et actions (copie, suppression logique)
+    - `verificationList` (route `/admin/verification/list`) et `verificationAdd` (route `/admin/verification/{id}`)
+
+## API v2 - Validation Leads
+
+Endpoints exposés dans `src/public/index.php` et implémentés par `src/app/Controllers/Api/LeadValidationController.php`.
+
+- __/api/v2/validation/run__ (GET/POST)
+  - Contrôleur: `LeadValidationController::run()`
+  - Service: `LeadValidationService::run(array $params)`
+  - Paramètres:
+    - `validationid` (int, optionnel): exécuter une configuration précise
+    - `statut` (string, optionnel, défaut `on`): filtre de configurations
+    - `limit` (int, optionnel, défaut `100`)
+  - Réponse: JSON avec `success`, `message`, `input`, `metrics` (durée, nombre de configurations), et `executions` (placeholder)
+
+- __/api/v2/validation/pending__ (GET/POST)
+  - Contrôleur: `LeadValidationController::loadPendingLeads()`
+  - Service: `LeadValidationService::loadPendingLeads(array $params)`
+  - Paramètres:
+    - `id` (int, optionnel): identifiant de lead précis (prioritaire)
+    - `limit` (int, optionnel, défaut `100`)
+    - `days` (int, optionnel, défaut `30`): fenêtre glissante en jours
+  - Comportement: utilise `Models\\Lead::getList()` (via instance) avec filtres sur `timestamp` et `statut = 'pending'`
+  - Réponse: JSON avec `success`, `message`, `input`, `metrics` (compte, durée) et `leads`
+
+## Services ajoutés/modifiés
+
+- __Services\\LeadValidationService__ (`src/app/Services/LeadValidationService.php`)
+  - `run(array $params = [])`: charge les configurations de validation (`Models\\Validation::getList`) selon `validationid`/`statut`/`limit` et retourne des métriques d’exécution (placeholder)
+  - `loadPendingLeads(array $params = [])`: charge les leads en `pending` par fenêtre temporelle (`days`) ou par `id` donné
+
+- __Services\\UserCampaignService__ (`src/app/Services/UserCampaignService.php`)
+  - Agrège les données des campagnes clients (commandes) et leurs webservices
+  - Méthode `getAllCommands($limit, $offset, $filters)` supporte les filtres: `userid`, `statut`, `deleted`, `campaignid`, `type`, `crm_userid`
+    - Note: si `statut = 'credit_over'`, le filtrage est appliqué en post-traitement selon le solde utilisateur (dépassé)
+  - Méthode `getUserCommands($userId)` retourne une structure normalisée incluant `products`, `reference`, `webservices`, `status`, `deleted`
+
+## Contrôleurs & Routes associés
+
+- __Controllers\\Api\\LeadValidationController__ (`src/app/Controllers/Api/LeadValidationController.php`)
+  - Actions: `run()`, `loadPendingLeads()`
+  - Routes: définies dans `src/public/index.php`
+
+- __Controllers\\AdminController__ (`src/app/Controllers/AdminController.php`)
+  - Actions pertinentes:
+    - `userlist`, `useradd`
+    - `clientcampaignList` (liste des campagnes clients) avec actions `copy` et `delete`
+    - `verificationList`, `verificationAdd`
+  - Dépendances: `Services\\UserService`, `Services\\UserCampaignService`, `Services\\Validation\\ValidationMessageService`
+
+Références de routing dans `src/public/index.php`:
+
+```php
+$App->all("/api/v2/validation/run")->setAction("Api\\LeadValidationController@run");
+$App->all("/api/v2/validation/pending")->setAction("Api\\LeadValidationController@loadPendingLeads");
+$App->all("/admin/clientcampaign/list")->setAction("AdminController@clientcampaignList");
+$App->all("/admin/verification/list")->setAction("AdminController@verificationList");
+$App->all("/admin/verification/{id}")->setAction("AdminController@verificationAdd");
+```
+
 ## License
 
  2025 Compleo Agency. Tous droits réservés. @COMPLEOAGENCY

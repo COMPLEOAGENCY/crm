@@ -1,6 +1,6 @@
 <?php // path: src/template/admin/menu.blade.php ?>
 <nav class="navbar navbar-expand-lg navbar-light">
-<a class="navbar-brand" href="/admin/"><img src="{{ asset('assets/img/applicationlogo.gif') }}" /></a>
+<a class="navbar-brand" href="/admin/"><img height="60px" width="auto"  src="{{ asset('assets/img/logo-black.png') }}" /></a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -23,7 +23,7 @@
                 <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Ventes</a>
                 <div class="dropdown-menu">
                     <div class="dropdown-header">Campagnes clients</div>
-                    <a class="dropdown-item" href="/admin/clientcampaign.php">Liste des campagnes clients</a>
+                    <a class="dropdown-item" href="/admin/clientcampaign/list">Liste des campagnes clients</a>
                     <a class="dropdown-item" href="/admin/clientcampaign-add.php">Ajouter une campagne client</a>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-header">Transferts</div>
@@ -61,8 +61,8 @@
                     <a class="dropdown-item" href="/admin/mapping-add.php">Ajouter un mapping</a>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-header">Vérifications</div>
-                    <a class="dropdown-item" href="/admin/verification.php">Liste des vérifications</a>
-                    <a class="dropdown-item" href="/admin/verification-add.php">Ajouter une vérification</a>
+                    <a class="dropdown-item" href="/admin/verification/list">Liste des vérifications</a>
+                    <a class="dropdown-item" href="/admin/verification/">Ajouter une vérification</a>
                 </div>
             </li>
 

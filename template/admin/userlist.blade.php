@@ -14,19 +14,36 @@
 @endsection
 
 @section('content')
-<div class="col-12 mt-3 mb-5 page-header">
-    <h1>{{ $title }}</h1>
-</div>
 
-{{-- Inclusion des messages --}}
-@include('admin.messages')
+    {{-- Header moderne style ventes --}}
+    <div class="card mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px;">
+        <div class="card-body py-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-people-fill" style="font-size: 2.5rem; margin-right: 20px;"></i>
+                <div>
+                    <h1 class="mb-0" style="font-size: 2rem; font-weight: 600;">Liste des comptes</h1>
+                    <p class="mb-0" style="opacity: 0.9;">{{ count($userList) }} utilisateurs actifs</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-{{-- Inclusion du menu utilisateur --}}
-@include('admin.userlistmenu')
+    {{-- Inclusion des messages --}}
+    @include('admin.messages')
 
-<form id="user" class="col-12" method="POST">
-    <div>
-        <table class="table table-striped table-bordered dataTable" id="example">
+    {{-- Inclusion du menu utilisateur --}}
+    <div class="mb-3">
+        @include('admin.userlistmenu')
+    </div>
+
+    <form id="user" method="POST">
+        <div class="card modern-card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Liste des utilisateurs</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered table-hover dataTable" id="example">
             <thead>
                 <tr>
                     <th>Select</th>
@@ -46,7 +63,7 @@
                         <td class="center">
                             <input type="checkbox" name="id_array[{{ $user->userId }}]" {{ isset($params['id_array'][$user->userId]) ? 'checked' : '' }}>
                         </td>
-                        <td><a href="/admin/user-add.php?userid={{ $user->userId }}">{{ $user->userId }}</a></td>
+                        <td><a href="/admin/useradd/{{ $user->userId }}">{{ $user->userId }}</a></td>
                         <td>{{ isset($user->timestamp) ? date("d/m/Y", $user->timestamp) : '' }}</td>
                         <td>{{ isset($user->last_update_timestamp) ? date("d/m/Y", $user->last_update_timestamp) : '' }}</td>
                         <td>
@@ -65,10 +82,13 @@
                     </tr>
                 @endforeach
             </tbody>
-        </table>
+                </table>
+            </div>
+        </div>
+    </div>
 
         <!-- Panel d'actions -->
-        <div class="card mt-4">
+        <div class="card modern-card">
             <div class="card-body">
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label" for="action"><strong>Action</strong></label>
@@ -82,12 +102,12 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" name="submit" value="valid" class="btn btn-primary">Valider</button>
-                <button type="submit" name="submit" value="refresh" class="btn btn-light">Rafraîchir</button>
+                <button type="submit" name="submit" value="valid" class="btn btn-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 30px; border-radius: 25px;"><i class="bi bi-check-circle me-1"></i> Valider</button>
+                <button type="submit" name="submit" value="refresh" class="btn btn-secondary" style="padding: 10px 30px; border-radius: 25px;"><i class="bi bi-arrow-clockwise me-1"></i> Rafraîchir</button>
             </div>
         </div>
-    </div>
-</form>
+    </form>
+
 @endsection
 
 @section('custom-scripts')

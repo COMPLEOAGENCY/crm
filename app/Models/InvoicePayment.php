@@ -73,4 +73,30 @@ class InvoicePayment extends Model
     {
         parent::__construct($data);
     }
+    
+    /**
+     * Calcule la somme des paiements pour une facture
+     * @param int $invoiceId
+     * @return float
+     */
+    public function sumPaid($invoiceId = null): float
+    {
+        $invoiceId = $invoiceId ?? $this->invoiceid;
+        if (empty($invoiceId)) {
+            return 0;
+        }
+        
+        $payments = $this->getList(1000000, [
+            ['invoiceid', '=', $invoiceId]
+        ]);
+        
+        $totalPaid = 0;
+        if (is_array($payments)) {
+            foreach ($payments as $payment) {
+                $totalPaid += $payment->amount;
+            }
+        }
+        
+        return $totalPaid;
+    }
 }

@@ -20,6 +20,81 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
 
     <style type="text/css">
+        /* Variables CSS globales */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        /* Style du body avec gradient moderne */
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* En-tête de page moderne */
+        .page-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Cards modernes - sans override des cards existantes */
+        .modern-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+
+        .modern-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Amélioration subtile des cards existantes */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Boutons avec gradient - classe optionnelle */
+        .btn-gradient {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        /* Cards de statistiques */
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Styles existants pour les tables */
         table td {
             overflow-wrap: break-word;
             vertical-align: top;
@@ -34,17 +109,38 @@
             vertical-align: top;
         }
 
+        /* Tables modernes - classe optionnelle */
+        .table-modern {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .table-modern thead {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        /* Checkboxes */
         [type="checkbox"] {
             width: 30px;
             height: 30px;
             cursor: pointer;
         }
 
+        /* Filtres - IMPORTANT pour selectpicker */
         .filter-option {
             max-width: 80vw;
             overflow: hidden;
         }
 
+        /* Ne pas override bootstrap-select */
+        .bootstrap-select .dropdown-toggle {
+            border-radius: 5px;
+        }
+
+        /* Validation et erreurs */
         .is-invalid {
             border-color: #dc3545;
             padding-right: calc(1.5em + .75rem);
@@ -61,6 +157,39 @@
         label.required:after {
             content: " *";
             color: #dc3545;
+        }
+
+        /* Amélioration subtile des formulaires sans casser selectpicker */
+        .form-control:not(.selectpicker) {
+            border-radius: 8px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-control:not(.selectpicker):focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        /* Badges modernes - classe optionnelle */
+        .badge-modern {
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-weight: 500;
+        }
+
+        /* Alertes modernes - amélioration subtile */
+        .alert {
+            border-radius: 8px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
         }
     </style>
     <!-- Custom CSS -->
@@ -81,11 +210,10 @@
 
     <!-- Main content -->
     <main class="container-fluid">
-        <div class="row">
 
             @yield('content')
 
-        </div>
+
     </main>
 
     <!-- JavaScript and custom scripts -->

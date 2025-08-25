@@ -74,6 +74,29 @@ try{
     $App->all("/admin/userlist/")
         ->setAction("AdminController@userlist");            
 
+    // Campagnes clients (MVC)
+    $App->all("/admin/clientcampaign/list")
+        ->setAction("AdminController@clientcampaignList");
+    $App->all("/admin/clientcampaign/list/")
+        ->setAction("AdminController@clientcampaignList");
+
+    // Route de test pour le BalanceService
+    $App->get("/admin/test/balance/{userid}")
+        ->setAction("TestController@testBalance")
+        ->where('userid', '[0-9]+');
+
+    // Vérifications (MVC)
+    $App->all("/admin/verification/list")
+        ->setAction("AdminController@verificationList");
+
+    // Détail d'une vérification (par ID)
+    $App->all("/admin/verification/{id}")
+        ->setAction("AdminController@verificationAdd")
+        ->where('id', '[0-9]+');
+
+    $App->all("/admin/verification/")
+    ->setAction("AdminController@verificationAdd");
+
     $App->all("/loginuser/")
         ->setAction("AuthController@login");
     
@@ -176,6 +199,14 @@ $App->delete("/api/chat/conversations/{id}/participants/{participantId}")
 // Routes pour les webhooks du chat (à implémenter plus tard)
 $App->post("/webhook/chat")
     ->setAction("Webhook@receive");
+
+// Route Validation Leads (API v2)
+$App->all("/api/v2/validation/run")
+    ->setAction("Api\\LeadValidationController@run");
+
+// Chargement des leads pending (API v2)
+$App->all("/api/v2/validation/pending")
+    ->setAction("Api\\LeadValidationController@loadPendingLeads");
 
 $Response   = $App->run();        
 

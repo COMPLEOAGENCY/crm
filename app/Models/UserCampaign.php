@@ -146,6 +146,18 @@ class UserCampaign extends Model
             "fieldType" => "int",
             "type" => "int",
             "default" => 0
+        ),
+        "statut" => array(
+            "field" => "statut",
+            "fieldType" => "string",
+            "type" => "string",
+            "default" => "on"
+        ),
+        "deleted" => array(
+            "field" => "deleted",
+            "fieldType" => "string",
+            "type" => "string",
+            "default" => "no"
         )
     );
 

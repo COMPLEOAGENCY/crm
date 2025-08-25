@@ -254,7 +254,8 @@ class UserService
 
     public function getSubUsers(int $userId): array
     {
-        return []; // Implémentation à compléter selon votre logique
+        $subUserModel = new \Models\SubUser();
+        return $subUserModel->getByUserId($userId) ?: [];
     }
 
     public function getCurrentUserId(): int

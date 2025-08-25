@@ -19,35 +19,48 @@
 @include('admin.messages')
 
 @section('content')
-<div class="col-12 mt-3 mb-5 page-header">
-    <h1>{{ $title }}</h1>
-</div>
-
-{{-- Inclusion des messages --}}
-@include('admin.messages')
 <div class="container-fluid">
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-12">
+            <h1 class="page-title">{{ $title }}</h1>
+        </div>
+    </div>
 
+    {{-- Inclusion des messages --}}
+    @include('admin.messages')
+
+    {{-- Card pour les filtres de recherche --}}
+    <div class="card modern-card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Filtres de recherche</h5>
+        </div>
+        <div class="card-body">
             <form method="get" action="">
                 <div class="input-group mb-3">
                     <input type="text" class="form-control" placeholder="Rechercher des clés" name="filter" value="{{ $filter }}">
-                    <button class="btn btn-outline-secondary" type="submit">Rechercher</button>
-                    <button type="button" id="delete-selected-keys" class="btn btn-danger">Supprimer les clés sélectionnées</button>
+                    <button class="btn btn-gradient" type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 30px; border-radius: 25px;"><i class="bi bi-search me-1"></i>Rechercher</button>
+                    <button type="button" id="delete-selected-keys" class="btn btn-gradient" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; padding: 10px 30px; border-radius: 25px;"><i class="bi bi-trash me-1"></i>Supprimer les clés sélectionnées</button>
                 </div>
             </form>
 
-            <div class="form-check mb-2">
+            <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="select-all-keys">
                 <label class="form-check-label" for="select-all-keys">
                     Sélectionner tout
                 </label>
             </div>
+        </div>
+    </div>
 
             <!-- Liste des clés -->
             @if(isset($keys) && count($keys) > 0)
-            <div class="table-responsive">
-                <table class="table table-striped">
+            <div class="card modern-card">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h5 class="mb-0"><i class="bi bi-database-fill me-2"></i>Clés Redis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th width="30"></th>
@@ -79,14 +92,17 @@
                         @endforeach
                     </tbody>
                 </table>
+                    </div>
+                </div>
             </div>
-            @else
-            <div class="text-center py-4">
-                <p class="text-muted mb-0">Aucune clé trouvée pour le filtre : {{ $filter }}</p>
-            </div>
-            @endif
+    @else
+    <div class="card modern-card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+            <p class="text-muted mt-3 mb-0">Aucune clé trouvée pour le filtre : {{ $filter }}</p>
         </div>
     </div>
+    @endif
 </div>
 
 <!-- Modal pour afficher la valeur -->
